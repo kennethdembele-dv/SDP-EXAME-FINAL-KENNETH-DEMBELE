@@ -453,9 +453,11 @@ async def decidir(tid, decisao):                                  # gravada ANTE
 
     H2("3.4 Falhas, recuperação e bloqueio")
     tabela(doc, ["Momento da falha", "Comportamento", "Prova"], [
-        ["Nó em baixo antes de preparar", "Voto NÃO (NO_INDISPONIVEL); os nós já preparados fazem ROLLBACK PREPARED; HTTP 503", "Cenário 5"],
+        ["Nó em baixo antes da preparação", "O primeiro nó falha (NO_INDISPONIVEL); nenhum prepara; ABORT; HTTP 503", "Cenário 5a"],
+        ["Nó cai durante a preparação", "Voto NÃO; os nós já preparados fazem ROLLBACK PREPARED; HTTP 503", "Cenário 5b"],
         ["Resposta ao PREPARE perdida", "Participante INCERTO; decisão ABORT; ROLLBACK PREPARED repetido até o nó responder", "Código"],
-        ["Nó em baixo depois da decisão", "Estado COMMIT_DECIDIDO (HTTP 202, pendente_em); a recuperação repete COMMIT PREPARED a cada 5 s", "Cenário 6"],
+        ["Nó cai depois da decisão", "Estado COMMIT_DECIDIDO (HTTP 202, pendente_em); a recuperação repete COMMIT PREPARED a cada 5 s", "Cenário 6a"],
+        ["Falha de rede na confirmação (nó vivo sem responder)", "COMMIT PREPARED esgota o tempo (5 s); decisão mantém-se; conclui quando a rede volta", "Cenário 6b"],
         ["Coordenador cai depois da decisão", "No arranque, repete a decisão gravada nos dois nós", "Cenário 7a"],
         ["Coordenador cai antes da decisão", "Abort presumido: sem decisão gravada ninguém confirmou, logo é seguro desfazer", "Cenário 7b"],
         ["Transacção preparada sem registo", "ROLLBACK PREPARED (órfã)", "Código"],
@@ -656,7 +658,8 @@ async def decidir(tid, decisao):                                  # gravada ANTE
     # ---------------------------------------------------------------- 6
     H1("6. Evidências de funcionamento")
     par(doc, "Os cenários são executados por `python testes/cenarios.py` com o sistema a correr em Docker. Cada cenário "
-             "provoca falhas reais (`docker compose stop`, `kill` e `start`), lê os saldos directamente nos nós "
+             "provoca falhas reais (`docker compose stop`, `kill`, `start`, e `pause`/`unpause` para simular uma falha de "
+             "rede em que o nó fica vivo mas deixa de responder), lê os saldos directamente nos nós "
              "PostgreSQL, de forma independente da API, e grava um ficheiro `.md` e um `.json` em `evidencias/`. Para "
              "escolher o momento exacto da falha, o coordenador tem pontos de pausa de laboratório "
              "(`POST /laboratorio/pausa`, activos só com `LABORATORIO=1` e protegidos por uma chave); a falha em si é "
@@ -679,9 +682,11 @@ async def decidir(tid, decisao):                                  # gravada ANTE
         (2, "Figura 6. Saldo insuficiente e validações (cenário 2).", ["Validacoes"], saldos_extra),
         (3, "Figura 7. Dez transferências concorrentes sobre a mesma conta (cenário 3).", ["Resultado de cada pedido"], saldos_extra),
         (4, "Figura 8. Idempotência (cenário 4).", ["Pedidos simultaneos"], saldos_extra),
-        (5, "Figura 9. Queda do nó América durante a preparação (cenário 5).", ["pg_prepared_xacts durante", "Diario do coordenador"], saldos_extra),
-        (6, "Figura 10. Queda do nó América durante a confirmação e recuperação (cenário 6).",
-         ["Estado no coordenador", "pg_prepared_xacts no America", "Diario do coordenador"], saldos_extra),
+        (5, "Figura 9. Nó Europa em baixo antes da preparação e queda do nó América durante a preparação (cenário 5).",
+         ["(a) Resposta", "(b) pg_prepared_xacts durante", "(b) Diario do coordenador"], saldos_extra),
+        (6, "Figura 10. Queda do nó América e falha de rede durante a confirmação, e recuperação (cenário 6).",
+         ["Estado no coordenador", "pg_prepared_xacts no America", "Diario do coordenador", "(b) Diario do coordenador"],
+         saldos_extra),
         (7, "Figura 11. Queda do coordenador com transacções pendentes (cenário 7).",
          ["(a) Estado com o coordenador", "(a) Linha bloqueada", "(a) Diario", "(b) Diario"], saldos_extra),
         (8, "Figura 12. Queda da api-1 e failover para a api-2 (cenário 8).", ["Mensagens do cliente"], saldos_extra),
@@ -704,15 +709,18 @@ async def decidir(tid, decisao):                                  # gravada ANTE
         ["SO modernos em contentores, IP, portas, DNS", "docker-compose.yml (networks, ipv4_address)", "Cenário 0"],
         ["Dois computadores", "distribuido/pc-a.yml, pc-b.yml, docs/DOIS_COMPUTADORES.md", "Procedimento manual"],
         ["DFS (NFS) para auditoria e relatórios", "nfs/, volume dfs, comum/auditoria.py", "Cenário 12"],
+        ["Instruções do servidor e clientes NFS", "docs/DOIS_COMPUTADORES.md (Servidor e clientes NFS)", "-"],
         ["Transparência e acesso concorrente no DFS", "Um ficheiro por evento, rename atómico", "Cenário 12"],
         ["BD fragmentada Europa/América", "bd/europa, bd/america, config.no_da_conta", "Cenário 1"],
         ["Transferência entre nós diferentes com 2PC", "coordenador/dois_fases.py", "Cenários 1, 5, 6, 7"],
+        ["Falhas antes, durante a preparação e na confirmação", "preparar(), _aplicar_no(), recuperar()", "Cenários 5a, 5b, 6a, 6b"],
+        ["Timeout de comunicação distinto da decisão", "api/main.py (504 DESCONHECIDO), asyncio.timeout na fase 2", "Cenários 6b, 7a"],
         ["max_prepared_transactions", "docker-compose.yml (command do PostgreSQL)", "Cenário 0"],
         ["Decisão durável e recuperação", "decidir(), recuperar(), db-coordenador", "Cenários 6, 7"],
         ["Concorrência sem saldo negativo", "_operacao() (UPDATE condicional), CHECK", "Cenário 3"],
         ["Idempotência e reutilização da chave", "registar_ou_obter(), hash_pedido()", "Cenário 4"],
         ["Justificação da linguagem", "Secção 3.6", "-"],
-        ["API REST/JSON com OpenAPI", "servicos/api/main.py, /docs", "Todos os cenários"],
+        ["API REST/JSON com OpenAPI", "servicos/api/main.py, /docs, docs/openapi/*.json", "Todos os cenários"],
         ["Módulo noutra tecnologia (Java) com XML", "banco-parceiro/, comum/contrato_parceiro.py", "Cenário 11"],
         ["Análise OMA/OMG", "Secção 4.3", "-"],
         ["TLS nos serviços Web e na BD", "comum/servidor.py, bd/pg_hba.conf, comum/bd.py", "Cenário 0"],

@@ -100,6 +100,10 @@ services:
     environment: { INSTANCIA: auth, PG_SENHA_LEITURA: "${PG_SENHA_LEITURA}" }
     secrets: [ca.crt, auth.crt, auth.key, jwt-privada.pem]
     ports: ["8000:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-m", "comum.saude", "https://localhost:8000/saude"]
+      interval: 5s
+      retries: 20
     depends_on: { db-europa: { condition: service_healthy } }
 
   coordenador:
@@ -117,6 +121,10 @@ services:
               assinatura-api-1.pub.pem, assinatura-api-2.pub.pem]
     volumes: [dfs:/mnt/dfs, espera-coordenador:/var/spool/gs-auditoria]
     ports: ["8100:8100"]                 # o api-2 do PC B envia-lhe as ordens
+    healthcheck:
+      test: ["CMD", "python", "-m", "comum.saude", "https://localhost:8100/saude"]
+      interval: 5s
+      retries: 20
     depends_on:
       db-coordenador: { condition: service_healthy }
       db-europa: { condition: service_healthy }
@@ -131,6 +139,10 @@ services:
     secrets: [ca.crt, api-1.crt, api-1.key, jwt-publica.pem, assinatura-api-1.pem]
     volumes: [dfs:/mnt/dfs, espera-api-1:/var/spool/gs-auditoria]
     ports: ["8001:8001"]
+    healthcheck:
+      test: ["CMD", "python", "-m", "comum.saude", "https://localhost:8001/saude"]
+      interval: 5s
+      retries: 20
     depends_on:
       db-europa: { condition: service_healthy }
       nfs: { condition: service_healthy }

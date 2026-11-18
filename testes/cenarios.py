@@ -477,61 +477,87 @@ def c04_idempotencia():
 
 
 def c05_falha_preparacao():
-    ev = Evidencia(5, "falha_na_preparacao", "Falha de um participante durante a preparacao",
-                   "O no America cai depois de o no Europa ja ter preparado (PREPARE TRANSACTION). "
-                   "O coordenador decide ABORT e o Europa faz ROLLBACK PREPARED: nenhum saldo muda.",
+    ev = Evidencia(5, "falha_na_preparacao", "Falha de um participante antes e durante a preparacao",
+                   "(a) O no Europa esta em baixo quando chega uma transferencia US-2001 -> EU-1001: o primeiro "
+                   "participante falha, nenhum prepara e a decisao e ABORT. (b) O no America cai depois de o Europa "
+                   "ja ter preparado (PREPARE TRANSACTION): o Europa faz ROLLBACK PREPARED. Nenhum saldo muda.",
                    "Com dois PCs pode desligar-se o cabo/Wi-Fi do PC B em vez de parar o contentor.")
     contas = ["EU-1001", "US-2001"]
     antes = saldos()
     ev.saldos("antes", antes, contas)
+
+    # (a) falha antes da preparacao
+    carlos = cliente("carlos", [API1])
+    ev.passo("(a) docker compose stop db-europa; carlos envia 12.00 de US-2001 para EU-1001")
+    compose("stop", "db-europa")
+    ra = carlos.transferir("US-2001", "EU-1001", "12.00", f"c05a-{uuid.uuid4()}")
+    corpo_a = ra.json()
+    ev.bloco("(a) Resposta com o no Europa em baixo antes da preparacao", resposta(ra))
+    ev.verificar("(a) HTTP 503, ABORTADA, NO_INDISPONIVEL",
+                 ra.status_code == 503 and corpo_a["estado"] == "ABORTADA" and corpo_a["codigo_erro"] == "NO_INDISPONIVEL")
+    parts = {p["no"]: p["estado"] for p in corpo_a["participantes"]}
+    ev.verificar(f"(a) nenhum participante preparou (europa {parts.get('europa')}, america {parts.get('america')})",
+                 parts.get("europa") == "NAO_PREPARADO" and parts.get("america") == "POR_PREPARAR")
+    ev.verificar("(a) America sem transaccao preparada e US-2001 sem alteracao",
+                 psql("db-america", 5434, "SELECT count(*) FROM pg_prepared_xacts")[0][0] == "0" and
+                 int(psql("db-america", 5434, "SELECT saldo_centimos FROM contas WHERE id='US-2001'")[0][0]) == antes["US-2001"])
+    ev.passo("(a) docker compose start db-europa")
+    compose("start", "db-europa")
+    esperar_saudavel("db-europa")
+
+    # (b) falha durante a preparacao
     c = cliente("ana", [API1])
-    ev.passo("Pausa de laboratorio de 8 s antes de preparar no America")
+    ev.passo("(b) Pausa de laboratorio de 8 s antes de preparar no America")
     pausa("antes_preparar_america", 8)
-    ev.passo("ana envia 15.00 de EU-1001 para US-2001 (em segundo plano)")
+    ev.passo("(b) ana envia 15.00 de EU-1001 para US-2001 (em segundo plano)")
     t = em_fundo(c.transferir, "EU-1001", "US-2001", "15.00", f"c05-{uuid.uuid4()}")
     prep = esperar(lambda: (p := preparadas())["europa"] and p, 10, 0.3, "preparacao no Europa")
-    ev.bloco("pg_prepared_xacts durante a pausa", prep)
-    ev.verificar("o Europa ja tem a transaccao preparada", len(prep["europa"]) == 1 and prep["america"] == [])
-    ev.passo("docker compose stop db-america (queda do no America)")
+    ev.bloco("(b) pg_prepared_xacts durante a pausa", prep)
+    ev.verificar("(b) o Europa ja tem a transaccao preparada", len(prep["europa"]) == 1 and prep["america"] == [])
+    ev.passo("(b) docker compose stop db-america (queda do no America)")
     compose("stop", "db-america")
     t.join(60)
     r = t.caixa["r"]
     corpo = r.json()
-    ev.bloco("Resposta da API (HTTP %d)" % r.status_code, corpo)
-    ev.verificar("HTTP 503 e estado ABORTADA com codigo NO_INDISPONIVEL",
+    ev.bloco("(b) Resposta da API (HTTP %d)" % r.status_code, corpo)
+    ev.verificar("(b) HTTP 503 e estado ABORTADA com codigo NO_INDISPONIVEL",
                  r.status_code == 503 and corpo["estado"] == "ABORTADA" and corpo["codigo_erro"] == "NO_INDISPONIVEL")
-    ev.verificar("Europa: transaccao preparada desfeita (ROLLBACK PREPARED)",
+    ev.verificar("(b) Europa: transaccao preparada desfeita (ROLLBACK PREPARED)",
                  psql("db-europa", 5433, "SELECT count(*) FROM pg_prepared_xacts")[0][0] == "0")
-    ev.verificar("EU-1001 sem alteracao com o America em baixo",
+    ev.verificar("(b) EU-1001 sem alteracao com o America em baixo",
                  int(psql("db-europa", 5433, "SELECT saldo_centimos FROM contas WHERE id='EU-1001'")[0][0]) == antes["EU-1001"])
-    ev.bloco("Diario do coordenador", "\n".join(eventos_2pc(corpo["id"])))
-    ev.passo("docker compose start db-america")
+    ev.bloco("(b) Diario do coordenador", "\n".join(eventos_2pc(corpo["id"])))
+    ev.passo("(b) docker compose start db-america")
     compose("start", "db-america")
     esperar_saudavel("db-america")
     depois = saldos()
     ev.saldos("depois", depois, contas)
     ev.verificar("saldos inalterados nos dois nos", all(depois[x] == antes[x] for x in contas))
     ev.verificar("nenhum movimento e nenhuma transaccao preparada",
-                 movimentos(corpo["id"]) == [] and preparadas() == {"europa": [], "america": []})
+                 movimentos(corpo["id"]) == [] and movimentos(corpo_a["id"]) == []
+                 and preparadas() == {"europa": [], "america": []})
     return ev
 
 
 def c06_falha_confirmacao():
     ev = Evidencia(6, "falha_na_confirmacao", "Falha durante a confirmacao e posterior recuperacao",
-                   "A decisao COMMIT ja esta gravada e o Europa ja confirmou quando o America cai. A transferencia "
+                   "(a) A decisao COMMIT ja esta gravada e o Europa ja confirmou quando o America cai. A transferencia "
                    "fica COMMIT_DECIDIDO (pendente no America). A transaccao preparada sobrevive ao reinicio do "
-                   "PostgreSQL e a recuperacao conclui o COMMIT.",
+                   "PostgreSQL e a recuperacao conclui o COMMIT. (b) Falha de rede: o America fica sem responder "
+                   "(processos congelados com docker compose pause, como numa particao); o COMMIT esgota o tempo, "
+                   "a decisao nao muda e a transferencia conclui quando a rede volta.",
                    "Com dois PCs pode desligar-se a rede do PC B durante a pausa.")
     contas = ["EU-1001", "US-2001"]
     antes = saldos()
     ev.saldos("antes", antes, contas)
     c = cliente("ana", [API1])
-    ev.passo("Pausa de laboratorio de 10 s antes do COMMIT PREPARED no America")
+    chave = f"c06-{uuid.uuid4()}"
+    ev.passo("(a) Pausa de laboratorio de 10 s antes do COMMIT PREPARED no America")
     pausa("antes_commit_america", 10)
-    ev.passo("ana envia 20.00 de EU-1001 para US-2001 (em segundo plano)")
-    t = em_fundo(c.transferir, "EU-1001", "US-2001", "20.00", f"c06-{uuid.uuid4()}")
-    tid = esperar(lambda: coord_sql("SELECT id FROM transferencias WHERE estado = 'COMMIT_DECIDIDO'")[0][0], 15, 0.3,
-                  "decisao COMMIT")
+    ev.passo("(a) ana envia 20.00 de EU-1001 para US-2001 (em segundo plano)")
+    t = em_fundo(c.transferir, "EU-1001", "US-2001", "20.00", chave)
+    tid = esperar(lambda: coord_sql(f"SELECT id FROM transferencias WHERE chave_idempotencia = '{chave}' "
+                                    f"AND estado = 'COMMIT_DECIDIDO'")[0][0], 15, 0.3, "decisao COMMIT")
     time.sleep(1)
     ev.bloco("Estado no coordenador durante a pausa", estado_bd(tid))
     # A proxima tentativa de COMMIT no America sera a do ciclo de recuperacao: pausa-a 25 s para se
@@ -559,10 +585,38 @@ def c06_falha_confirmacao():
     depois = saldos()
     ev.saldos("depois", depois, contas)
     ev.bloco("Diario do coordenador", "\n".join(eventos_2pc(tid)))
-    ev.verificar("estado final CONCLUIDA", estado_bd(tid)["estado"] == "CONCLUIDA")
-    ev.verificar("US-2001 creditada em 20.00", depois["US-2001"] - antes["US-2001"] == 2000)
-    ev.verificar("total conservado", sum(antes[x] for x in contas) == sum(depois[x] for x in contas))
-    ev.verificar("um debito e um credito", len(movimentos(tid)) == 2)
+    ev.verificar("(a) estado final CONCLUIDA", estado_bd(tid)["estado"] == "CONCLUIDA")
+    ev.verificar("(a) US-2001 creditada em 20.00", depois["US-2001"] - antes["US-2001"] == 2000)
+    ev.verificar("(a) total conservado", sum(antes[x] for x in contas) == sum(depois[x] for x in contas))
+    ev.verificar("(a) um debito e um credito", len(movimentos(tid)) == 2)
+
+    # (b) falha de rede: o no continua vivo mas nao responde
+    chave_b = f"c06b-{uuid.uuid4()}"
+    ev.passo("(b) Pausa de 6 s antes do COMMIT no America; ana envia 8.00 de EU-1001 para US-2001")
+    pausa("antes_commit_america", 6)
+    t = em_fundo(c.transferir, "EU-1001", "US-2001", "8.00", chave_b)
+    tid_b = esperar(lambda: coord_sql(f"SELECT id FROM transferencias WHERE chave_idempotencia = '{chave_b}' "
+                                      f"AND estado = 'COMMIT_DECIDIDO'")[0][0], 15, 0.3, "decisao COMMIT (b)")
+    ev.passo("(b) docker compose pause db-america (o no deixa de responder, sem perder ligacao de rede nem dados)")
+    compose("pause", "db-america")
+    t.join(60)
+    rb = t.caixa["r"]
+    ev.bloco("(b) Resposta da API com o America sem responder", resposta(rb))
+    ev.verificar("(b) HTTP 202 COMMIT_DECIDIDO, pendente no america (o timeout nao mudou a decisao)",
+                 rb.status_code == 202 and rb.json()["estado"] == "COMMIT_DECIDIDO" and rb.json()["pendente_em"] == ["america"])
+    time.sleep(8)                                   # a recuperacao tenta e volta a esgotar o tempo
+    ev.verificar("(b) durante a falha de rede a transferencia continua COMMIT_DECIDIDO",
+                 estado_bd(tid_b)["estado"] == "COMMIT_DECIDIDO")
+    ev.passo("(b) docker compose unpause db-america (a rede volta)")
+    compose("unpause", "db-america")
+    esperar(lambda: estado_bd(tid_b)["estado"] == "CONCLUIDA", 60, 1, "CONCLUIDA (b)")
+    ev.bloco("(b) Diario do coordenador", "\n".join(eventos_2pc(tid_b)))
+    ev.verificar("(b) o diario regista o COMMIT sem resposta (timeout) e a repeticao bem-sucedida",
+                 any("DECISAO_PENDENTE" in l for l in eventos_2pc(tid_b)) and estado_bd(tid_b)["estado"] == "CONCLUIDA")
+    final = saldos()
+    ev.saldos("final", final, contas)
+    ev.verificar("(b) um debito e um credito e total conservado",
+                 len(movimentos(tid_b)) == 2 and sum(antes[x] for x in contas) == sum(final[x] for x in contas))
     ev.verificar("nenhuma transaccao preparada ficou por resolver", preparadas() == {"europa": [], "america": []})
     return ev
 
@@ -957,6 +1011,7 @@ def main():
             ev.bloco("Erro", traceback.format_exc())
             ev.verificar("o cenario executou sem erros", False)
             traceback.print_exc()
+            compose("unpause", "db-america")
             for s in ("db-america", "db-europa", "coordenador", "api-1", "auth", "banco-parceiro", "nfs"):
                 compose("start", s)
         ev.gravar()

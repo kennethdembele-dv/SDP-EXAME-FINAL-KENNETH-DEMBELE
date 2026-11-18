@@ -61,6 +61,10 @@ services:
     secrets: [ca.crt, api-2.crt, api-2.key, jwt-publica.pem, assinatura-api-2.pem]
     volumes: [dfs:/mnt/dfs, espera-api-2:/var/spool/gs-auditoria]
     ports: ["8002:8002"]
+    healthcheck:
+      test: ["CMD", "python", "-m", "comum.saude", "https://localhost:8002/saude"]
+      interval: 5s
+      retries: 20
     depends_on: { db-america: { condition: service_healthy } }
     networks: [rede]
 
@@ -74,6 +78,10 @@ services:
     secrets: [banco-parceiro.p12]
     volumes: [dados-parceiro:/dados]
     ports: ["8200:8200"]                 # o coordenador (PC A) envia as confirmacoes
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "8200"]
+      interval: 5s
+      retries: 20
     networks: [rede]
 
 networks:

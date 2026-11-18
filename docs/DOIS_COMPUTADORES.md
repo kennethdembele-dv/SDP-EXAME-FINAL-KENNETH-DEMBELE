@@ -124,6 +124,39 @@ NFS_ENDERECO=127.0.0.1
 `host-gateway` e o endereco do proprio anfitriao visto de dentro dos contentores, por isso o trafego
 entre os "dois PCs" sai do contentor e volta a entrar pelas portas publicadas, como numa rede real.
 
+## Servidor e clientes NFS
+
+**No ambiente de desenvolvimento (Windows com Docker Desktop)** o anfitriao nao monta NFSv4: o
+Windows 10 nao tem servidor NFS e o "Cliente para NFS" do Windows so fala NFSv2/v3. Por isso o servidor
+e o contentor `nfs` (NFS-Ganesha, NFSv4 em espaco de utilizador) e a montagem e feita pelo Docker, que
+corre numa maquina virtual Linux: o volume `dfs` (tipo `nfs`) e montado pelo cliente NFS do kernel Linux
+dessa maquina e entregue aos contentores em `/mnt/dfs`. Pode confirmar-se com
+`docker compose exec api-1 grep /mnt/dfs /proc/mounts` (tipo `nfs4`).
+
+**Numa instalacao real em Linux (sem Docker para o NFS)**, os comandos equivalentes sao:
+
+```sh
+# PC A - servidor NFS do kernel
+sudo apt install nfs-kernel-server
+sudo mkdir -p /srv/dfs/auditoria /srv/dfs/relatorios
+sudo chown -R nobody:nogroup /srv/dfs && sudo chmod -R 0775 /srv/dfs
+echo "/srv/dfs 192.168.1.0/24(rw,sync,no_subtree_check,fsid=0)" | sudo tee -a /etc/exports
+sudo exportfs -ra && sudo systemctl enable --now nfs-server
+sudo exportfs -v                                    # confirma a exportacao
+
+# PC A e PC B - cliente NFS (montado onde correm as APIs e o coordenador)
+sudo apt install nfs-common
+sudo mkdir -p /mnt/dfs
+sudo mount -t nfs4 -o rw,soft,timeo=50,retrans=2 192.168.1.10:/ /mnt/dfs
+echo "192.168.1.10:/ /mnt/dfs nfs4 rw,soft,timeo=50,retrans=2,_netdev 0 0" | sudo tee -a /etc/fstab
+mount | grep /mnt/dfs                               # tipo nfs4
+```
+
+Com o NFS do sistema montado em `/mnt/dfs`, o volume `dfs` dos ficheiros Compose pode ser trocado por
+uma montagem directa (`- /mnt/dfs:/mnt/dfs`). As opcoes `soft,timeo=50,retrans=2` fazem as escritas
+falharem com erro ao fim de alguns segundos se o servidor cair, em vez de bloquearem; o servico guarda
+entao os eventos na pasta de espera local e publica-os quando o NFS voltar.
+
 ## Confianca na CA
 
 Para o navegador (Swagger) e o `curl` aceitarem os certificados sem `--cacert`:

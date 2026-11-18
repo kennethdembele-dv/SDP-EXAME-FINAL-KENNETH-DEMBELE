@@ -1,0 +1,683 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Global-Scale: API financeira (api-1)",
+    "description": "Consulta de contas, saldo, historico e transferencias entre regioes. Autenticacao: Bearer JWT obtido em https://localhost:8000/api/v1/autenticacao/token",
+    "version": "1.0"
+  },
+  "paths": {
+    "/api/v1/contas": {
+      "get": {
+        "tags": [
+          "contas"
+        ],
+        "summary": "Listar Contas",
+        "operationId": "listar_contas_api_v1_contas_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/contas/{conta}": {
+      "get": {
+        "tags": [
+          "contas"
+        ],
+        "summary": "Obter Conta",
+        "operationId": "obter_conta_api_v1_contas__conta__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conta",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conta"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/contas/{conta}/saldo": {
+      "get": {
+        "tags": [
+          "contas"
+        ],
+        "summary": "Saldo",
+        "operationId": "saldo_api_v1_contas__conta__saldo_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conta",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conta"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/contas/{conta}/movimentos": {
+      "get": {
+        "tags": [
+          "contas"
+        ],
+        "summary": "Historico",
+        "operationId": "historico_api_v1_contas__conta__movimentos_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conta",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conta"
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limite"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transferencias": {
+      "post": {
+        "tags": [
+          "transferencias"
+        ],
+        "summary": "Transferir",
+        "operationId": "transferir_api_v1_transferencias_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 100,
+              "description": "Chave unica do pedido; repetir com a mesma chave nao duplica",
+              "title": "Idempotency-Key"
+            },
+            "description": "Chave unica do pedido; repetir com a mesma chave nao duplica"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedidoTransferencia"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "transferencias"
+        ],
+        "summary": "Listar Transferencias",
+        "operationId": "listar_transferencias_api_v1_transferencias_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "chave",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Chave"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transferencias/{tid}": {
+      "get": {
+        "tags": [
+          "transferencias"
+        ],
+        "summary": "Estado Transferencia",
+        "operationId": "estado_transferencia_api_v1_transferencias__tid__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Tid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transferencias/{tid}/auditoria": {
+      "get": {
+        "tags": [
+          "dfs"
+        ],
+        "summary": "Auditoria Transferencia",
+        "description": "Eventos desta transferencia escritos no DFS por todos os servicos (de qualquer computador).",
+        "operationId": "auditoria_transferencia_api_v1_transferencias__tid__auditoria_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Tid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/parceiro/transferencias/{tid}": {
+      "get": {
+        "tags": [
+          "interoperabilidade"
+        ],
+        "summary": "Consultar Parceiro",
+        "description": "Consulta o registo da transferencia no banco parceiro (servico Java, XML sobre HTTPS).",
+        "operationId": "consultar_parceiro_api_v1_parceiro_transferencias__tid__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Tid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/relatorios/extracto": {
+      "post": {
+        "tags": [
+          "dfs"
+        ],
+        "summary": "Gerar Extracto",
+        "operationId": "gerar_extracto_api_v1_relatorios_extracto_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedidoExtracto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/relatorios": {
+      "get": {
+        "tags": [
+          "dfs"
+        ],
+        "summary": "Listar Relatorios",
+        "operationId": "listar_relatorios_api_v1_relatorios_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/relatorios/{nome}": {
+      "get": {
+        "tags": [
+          "dfs"
+        ],
+        "summary": "Ler Relatorio",
+        "operationId": "ler_relatorio_api_v1_relatorios__nome__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "nome",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Nome"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/saude": {
+      "get": {
+        "tags": [
+          "sistema"
+        ],
+        "summary": "Saude",
+        "operationId": "saude_saude_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "PedidoExtracto": {
+        "properties": {
+          "conta": {
+            "type": "string",
+            "pattern": "^(EU|US)-\\d{4}$",
+            "title": "Conta",
+            "examples": [
+              "EU-1001"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "conta"
+        ],
+        "title": "PedidoExtracto"
+      },
+      "PedidoTransferencia": {
+        "properties": {
+          "conta_origem": {
+            "type": "string",
+            "pattern": "^(EU|US)-\\d{4}$",
+            "title": "Conta Origem",
+            "examples": [
+              "EU-1001"
+            ]
+          },
+          "conta_destino": {
+            "type": "string",
+            "pattern": "^(EU|US)-\\d{4}$",
+            "title": "Conta Destino",
+            "examples": [
+              "US-2001"
+            ]
+          },
+          "montante": {
+            "type": "string",
+            "title": "Montante",
+            "description": "Texto decimal com ate 2 casas",
+            "examples": [
+              "125.50"
+            ]
+          },
+          "moeda": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "title": "Moeda",
+            "default": "EUR"
+          }
+        },
+        "type": "object",
+        "required": [
+          "conta_origem",
+          "conta_destino",
+          "montante"
+        ],
+        "title": "PedidoTransferencia"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

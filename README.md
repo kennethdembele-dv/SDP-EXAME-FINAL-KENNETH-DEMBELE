@@ -76,7 +76,7 @@ Estas palavras-passe sao ficticias e so existem para o laboratorio.
 **Swagger (OpenAPI):** <https://localhost:8001/docs> e <https://localhost:8002/docs>.
 Para o navegador aceitar o certificado, instale `segredos/ca.crt` como autoridade de confianca
 (ver [docs/DOIS_COMPUTADORES.md](docs/DOIS_COMPUTADORES.md#confianca-na-ca)). A especificacao esta
-em `/openapi.json`.
+em `/openapi.json` e exportada em [docs/openapi/](docs/openapi/) (`python scripts/exportar_openapi.py`).
 
 **Cliente de linha de comandos** (com failover entre api-1 e api-2):
 
@@ -138,8 +138,8 @@ provocar falhas reais.
 | 2 | Saldo insuficiente e validacoes |
 | 3 | 10 transferencias concorrentes sobre a mesma conta |
 | 4 | Repeticao com a mesma chave de idempotencia (e chave reutilizada com outros dados) |
-| 5 | Falha de um participante durante a preparacao |
-| 6 | Falha durante a confirmacao e recuperacao |
+| 5 | Falha de um participante antes e durante a preparacao |
+| 6 | Falha durante a confirmacao (queda do no e falha de rede) e recuperacao |
 | 7 | Reinicio do coordenador com transaccoes pendentes (COMMIT gravado e abort presumido) |
 | 8 | Queda de uma instancia da API e utilizacao da outra |
 | 9 | Token invalido/expirado e acesso a conta de outro utilizador |
@@ -157,6 +157,8 @@ docker compose stop db-america        # derrubar um no da base de dados
 python scripts/cliente.py -u ana -p Ana#2026 transferir EU-1001 US-2001 10.00   # -> 503 ABORTADA
 docker compose start db-america
 
+docker compose pause db-america       # falha de rede: o no fica vivo mas nao responde
+docker compose unpause db-america
 docker compose stop api-1             # derrubar uma instancia da API: o cliente usa a api-2
 docker compose kill coordenador       # queda abrupta do coordenador
 docker compose start coordenador      # a recuperacao de arranque conclui ou aborta o que ficou pendente
@@ -211,8 +213,8 @@ bd/            migracoes SQL (regional, europa, america, coordenador), pg_hba.co
 nfs/           servidor NFS-Ganesha
 seguranca/     gerar_materiais.py (CA, certificados, chaves; nada disto vai para o Git)
 distribuido/   pc-a.yml, pc-b.yml, enderecos.env.example
-scripts/       cliente.py
+scripts/       cliente.py, exportar_openapi.py
 testes/        unitarios/ (pytest), cenarios.py (12 cenarios com evidencias)
 evidencias/    resultados reais dos testes
-docs/          arquitectura, dois computadores, roteiro da defesa, guia de estudo, relatorio (Word e PDF)
+docs/          arquitectura, dois computadores, roteiro da defesa, guia de estudo, openapi/, relatorio (Word e PDF)
 ```

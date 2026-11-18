@@ -35,7 +35,7 @@ No fim, perguntas provaveis do docente com respostas curtas.
 
 | Requisito | Conceito | Onde | Prova |
 |---|---|---|---|
-| API REST/JSON | FastAPI com OpenAPI automatico em `/docs` | `servicos/api/main.py` | Swagger, todos os cenarios |
+| API REST/JSON | FastAPI com OpenAPI automatico em `/docs` | `servicos/api/main.py`, `docs/openapi/*.json` | Swagger, todos os cenarios |
 | Modulo noutra tecnologia | Java 21 so com o JDK (HttpsServer, DOM) | `banco-parceiro/src/BancoParceiro.java` | Cenario 11 |
 | Troca de XML | Contrato `confirmacaoTransferencia` / `registoParceiro` com XSD | `comum/contrato_parceiro.py`, `banco-parceiro/contrato.xsd` | Cenario 11 |
 | Validacao e indisponibilidade | Java valida campos e recusa DTD (XXE); Python valida a resposta; Java em baixo → POR_ENVIAR e reenvio | `lerPedido()`, `ler_registo()`, `confirmar_parceiro()` | Cenario 11 |
@@ -55,7 +55,19 @@ No fim, perguntas provaveis do docente com respostas curtas.
 | Repeticao de mensagens | `emitido_em` (janela de 120 s) + id + chave de idempotencia | `verificar_janela()` | Cenario 10 |
 | Segredos fora do Git | `segredos/` e `.env` no `.gitignore`; `.env.example`; Docker secrets | `seguranca/gerar_materiais.py` | `git status` |
 
-## 2. Conceitos que tem de saber explicar
+## 2. Etapas da construcao (para estudar e repetir pela mesma ordem)
+
+| Etapa | Conceito | Ficheiros | Comando | Como verificar |
+|---|---|---|---|---|
+| 1 Materiais de seguranca | CA do laboratorio, certificado por servico com o nome DNS no SAN, chaves JWT e de assinatura | `seguranca/gerar_materiais.py`, `.env.example` | `python seguranca/gerar_materiais.py` | `segredos/` e `.env` criados; `git status` nao os mostra |
+| 2 Bases de dados | Fragmentacao horizontal; `max_prepared_transactions`; TLS obrigatorio | `bd/`, servicos `db-*` do compose | `docker compose up -d db-europa db-america db-coordenador` | `docker compose ps` (healthy); `SHOW max_prepared_transactions` |
+| 3 Autenticacao e API | JWT RS256 emitido por um no e validado localmente; REST com OpenAPI | `servicos/autenticacao/`, `servicos/api/`, `comum/tokens.py` | `docker compose up -d auth api-1 api-2` | `python scripts/cliente.py -u ana -p Ana#2026 contas`; `https://localhost:8001/docs` |
+| 4 Coordenador 2PC | Preparacao, decisao duravel, confirmacao, recuperacao, idempotencia | `servicos/coordenador/` | `docker compose up -d coordenador` | `cliente.py ... transferir EU-1001 US-2001 10.00` → `CONCLUIDA` |
+| 5 Java e DFS | Interoperabilidade por contrato XML; NFS partilhado com um ficheiro por evento | `banco-parceiro/`, `nfs/`, `comum/auditoria.py` | `docker compose up -d` | `cliente.py ... parceiro <id>`; `cliente.py ... auditoria <id>` |
+| 6 Dois computadores | O mesmo nome DNS aponta para outro IP (`extra_hosts`) | `distribuido/` | ver `docs/DOIS_COMPUTADORES.md` | `getent hosts db-america` no PC A da o IP do PC B |
+| 7 Testes e evidencias | Falhas reais em cada fase e verificacao global dos fundos | `testes/` | `python -m pytest testes/unitarios -q` e `python testes/cenarios.py` | `evidencias/RESUMO.md` com todos os cenarios PASSOU |
+
+## 3. Conceitos que tem de saber explicar
 
 **2PC em tres frases.** O coordenador pede a todos os participantes que preparem (cada um faz o
 trabalho, grava-o no disco e promete que consegue confirmar). Se todos disserem sim, grava a decisao
@@ -100,7 +112,7 @@ libertado durante E/S (rede, base de dados). Como estes servicos passam quase to
 E/S, threads (API) e asyncio (coordenador) dao concorrencia real. Para calculo intensivo usar-se-iam
 processos (`multiprocessing`) ou varias instancias, como as duas APIs.
 
-## 3. Perguntas provaveis e respostas curtas
+## 4. Perguntas provaveis e respostas curtas
 
 **P: Porque 2PC e nao Saga?**
 R: O enunciado pede ACID. Uma Saga confirma cada passo localmente e compensa depois, por isso ha um
@@ -111,6 +123,11 @@ A Saga escala melhor e nao bloqueia; seria a escolha se as transferencias envolv
 R: Depende do momento. Antes de preparar: ABORT, o Europa faz ROLLBACK PREPARED (cenario 5). Depois da
 decisao COMMIT: o Europa confirma, o America fica pendente, e quando volta a transaccao preparada
 continua la e o coordenador faz COMMIT PREPARED (cenario 6).
+
+**P: E uma falha de rede, em que o no esta vivo mas nao responde?**
+R: Cenario 6(b): `docker compose pause` congela o no America (os pedidos chegam mas ninguem responde). O
+COMMIT PREPARED esgota o tempo (5 s); a decisao COMMIT mantem-se, a resposta e 202 COMMIT_DECIDIDO e a
+recuperacao repete ate a "rede" voltar (`unpause`). Um timeout nunca transforma um COMMIT em ABORT.
 
 **P: E se cair o coordenador?**
 R: Com decisao gravada, ao reiniciar repete-a nos dois nos (cenario 7a). Sem decisao, abort presumido

@@ -1,0 +1,147 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Global-Scale: autenticacao",
+    "description": "Emissor de JWT RS256. As APIs validam os tokens com a chave publica.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/autenticacao/token": {
+      "post": {
+        "summary": "Emitir Token",
+        "operationId": "emitir_token_api_v1_autenticacao_token_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credenciais"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/saude": {
+      "get": {
+        "summary": "Saude",
+        "operationId": "saude_saude_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Credenciais": {
+        "properties": {
+          "utilizador": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Utilizador",
+            "examples": [
+              "ana"
+            ]
+          },
+          "palavra_passe": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Palavra Passe",
+            "examples": [
+              "Ana#2026"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "utilizador",
+          "palavra_passe"
+        ],
+        "title": "Credenciais"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
