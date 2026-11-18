@@ -1,0 +1,7 @@
+segredos
+.env
+evidencias
+docs
+testes
+.git
+**/__pycache__

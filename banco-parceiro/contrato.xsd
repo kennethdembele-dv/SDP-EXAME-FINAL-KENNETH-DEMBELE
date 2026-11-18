@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Contrato XML entre o Global-Scale (Python) e o banco parceiro (Java), versao 1. -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+
+  <xs:simpleType name="Uuid">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Conta">
+    <xs:restriction base="xs:string"><xs:pattern value="(EU|US)-[0-9]{4}"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Moeda">
+    <xs:restriction base="xs:string"><xs:pattern value="[A-Z]{3}"/></xs:restriction>
+  </xs:simpleType>
+
+  <!-- Pedido: Python -> Java (POST /legado/confirmacoes) -->
+  <xs:element name="confirmacaoTransferencia">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="id" type="Uuid"/>
+        <xs:element name="contaOrigem" type="Conta"/>
+        <xs:element name="contaDestino" type="Conta"/>
+        <xs:element name="montanteCentimos" type="xs:positiveInteger"/>
+        <xs:element name="moeda" type="Moeda"/>
+        <xs:element name="concluidaEm" type="xs:dateTime"/>
+      </xs:sequence>
+      <xs:attribute name="versao" type="xs:string" fixed="1" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Resposta: Java -> Python (201/200 no POST, 200 no GET /legado/transferencias/{id}) -->
+  <xs:element name="registoParceiro">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="id" type="Uuid"/>
+        <xs:element name="referenciaParceiro">
+          <xs:simpleType><xs:restriction base="xs:string"><xs:pattern value="BP-[0-9]{6}"/></xs:restriction></xs:simpleType>
+        </xs:element>
+        <xs:element name="estado" type="xs:string"/>
+        <xs:element name="contaOrigem" type="Conta"/>
+        <xs:element name="contaDestino" type="Conta"/>
+        <xs:element name="montanteCentimos" type="xs:positiveInteger"/>
+        <xs:element name="moeda" type="Moeda"/>
+        <xs:element name="concluidaEm" type="xs:dateTime"/>
+        <xs:element name="recebidaEm" type="xs:dateTime"/>
+      </xs:sequence>
+      <xs:attribute name="versao" type="xs:string" fixed="1" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Erro (400, 404, 405, 413, 500) -->
+  <xs:element name="erro">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="codigo" type="xs:string"/>
+        <xs:element name="mensagem" type="xs:string"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

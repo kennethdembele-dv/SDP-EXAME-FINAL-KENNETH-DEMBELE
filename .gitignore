@@ -1,0 +1,11 @@
+# Materiais secretos gerados localmente (seguranca/gerar_materiais.py)
+segredos/
+.env
+distribuido/.env
+
+__pycache__/
+*.pyc
+.pytest_cache/
+*.class
+docs/relatorio/~$*
+distribuido/enderecos.env

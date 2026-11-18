@@ -1,0 +1,101 @@
+# PC B - "America": no America, api-2 e banco parceiro (Java).
+#
+#   docker compose -p gs-pc-b -f distribuido/pc-b.yml --env-file .env --env-file distribuido/enderecos.env up -d --build
+#
+# Os servicos do PC A (db-europa, coordenador, auth) sao resolvidos para IP_PC_A por extra_hosts.
+# O DFS e montado a partir do servidor NFS do PC A (NFS_ENDERECO, normalmente igual a IP_PC_A).
+# Este PC so precisa destes segredos: ca.crt, db-america.*, api-2.*, jwt-publica.pem,
+# assinatura-api-2.pem e banco-parceiro.p12 (a chave privada do JWT fica so no PC A).
+
+name: gs-pc-b
+
+x-remotos: &remotos                      # servicos que estao no PC A
+  - "db-europa:${IP_PC_A:?defina IP_PC_A em distribuido/enderecos.env}"
+  - "coordenador:${IP_PC_A}"
+  - "auth:${IP_PC_A}"
+  - "api-1:${IP_PC_A}"
+
+services:
+  db-america:
+    image: postgres:17.12-alpine
+    hostname: db-america
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/bd/arrancar.sh"]
+    command: ["postgres", "-c", "ssl=on",
+              "-c", "ssl_cert_file=/var/lib/postgresql/tls/servidor.crt",
+              "-c", "ssl_key_file=/var/lib/postgresql/tls/servidor.key",
+              "-c", "ssl_min_protocol_version=TLSv1.2", "-c", "hba_file=/bd/pg_hba.conf",
+              "-c", "max_connections=40", "-c", "max_prepared_transactions=40",
+              "-c", "shared_buffers=32MB", "-c", "log_statement=all", "-c", "log_line_prefix=%m [%p] %u@%d "]
+    mem_limit: 256m
+    environment:
+      NO: db-america
+      PGPORT: "5434"
+      POSTGRES_DB: globalscale
+      POSTGRES_PASSWORD: ${PG_SENHA_ADMIN}
+      PG_SENHA_LEITURA: ${PG_SENHA_LEITURA}
+      PG_SENHA_TRANSACCOES: ${PG_SENHA_TRANSACCOES}
+    volumes:
+      - dados-america:/var/lib/postgresql/data
+      - ../bd/arrancar.sh:/bd/arrancar.sh:ro
+      - ../bd/pg_hba.conf:/bd/pg_hba.conf:ro
+      - ../bd/regional/00-papeis.sh:/docker-entrypoint-initdb.d/00-papeis.sh:ro
+      - ../bd/regional/01-esquema.sql:/docker-entrypoint-initdb.d/01-esquema.sql:ro
+      - ../bd/america/02-fragmento-dados.sql:/docker-entrypoint-initdb.d/02-fragmento-dados.sql:ro
+    secrets: [ca.crt, db-america.crt, db-america.key]
+    ports: ["5434:5434"]                 # coordenador, auth e api-1 (PC A) ligam-se aqui
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-p", "5434", "-U", "postgres"]
+      interval: 3s
+      retries: 40
+    networks: [rede]
+
+  api-2:
+    build: { context: .., dockerfile: servicos/Dockerfile, args: { SERVICO: api } }
+    image: global-scale-api
+    hostname: api-2
+    restart: unless-stopped
+    mem_limit: 192m
+    extra_hosts: *remotos
+    environment: { INSTANCIA: api-2, PORTA: "8002", PG_SENHA_LEITURA: "${PG_SENHA_LEITURA}" }
+    secrets: [ca.crt, api-2.crt, api-2.key, jwt-publica.pem, assinatura-api-2.pem]
+    volumes: [dfs:/mnt/dfs, espera-api-2:/var/spool/gs-auditoria]
+    ports: ["8002:8002"]
+    depends_on: { db-america: { condition: service_healthy } }
+    networks: [rede]
+
+  banco-parceiro:
+    build: ../banco-parceiro
+    image: global-scale-banco-parceiro
+    hostname: banco-parceiro
+    restart: unless-stopped
+    mem_limit: 160m
+    environment: { PORTA: "8200", KEYSTORE: /run/secrets/banco-parceiro.p12, KEYSTORE_SENHA: laboratorio }
+    secrets: [banco-parceiro.p12]
+    volumes: [dados-parceiro:/dados]
+    ports: ["8200:8200"]                 # o coordenador (PC A) envia as confirmacoes
+    networks: [rede]
+
+networks:
+  rede: { driver: bridge }
+
+volumes:
+  dados-america: {}
+  dados-parceiro: {}
+  espera-api-2: {}
+  dfs:                                   # DFS do PC A, montado pela rede
+    driver: local
+    driver_opts:
+      type: nfs
+      o: "addr=${NFS_ENDERECO:-${IP_PC_A}},rw,nfsvers=4.0,port=2049,soft,timeo=50,retrans=2"
+      device: ":/dfs"
+
+secrets:
+  ca.crt: { file: ../segredos/ca.crt }
+  api-2.crt: { file: ../segredos/api-2.crt }
+  api-2.key: { file: ../segredos/api-2.key }
+  db-america.crt: { file: ../segredos/db-america.crt }
+  db-america.key: { file: ../segredos/db-america.key }
+  banco-parceiro.p12: { file: ../segredos/banco-parceiro.p12 }
+  jwt-publica.pem: { file: ../segredos/jwt-publica.pem }
+  assinatura-api-2.pem: { file: ../segredos/assinatura-api-2.pem }

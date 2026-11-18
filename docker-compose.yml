@@ -1,0 +1,295 @@
+# Global-Scale System - execucao local (um computador) para desenvolvimento e simulacao.
+#
+#   python seguranca/gerar_materiais.py      (uma vez: certificados, chaves e .env)
+#   docker compose up -d --build
+#   docker compose ps
+#
+# Para dois computadores ver distribuido/ e docs/DOIS_COMPUTADORES.md.
+#
+# Redes:
+#   frontal 172.30.1.0/24 - onde chegam os clientes (autenticacao e APIs)
+#   interna 172.30.2.0/24 - bases de dados, coordenador, banco parceiro e NFS (nao publicados,
+#                           excepto o coordenador e o banco parceiro em 127.0.0.1 para os testes)
+# Cada servico e encontrado pelo nome (DNS interno do Docker): db-europa, coordenador, ...
+# Todas as ligacoes sao TLS: HTTPS entre servicos Web e sslmode=verify-full para o PostgreSQL.
+
+name: global-scale
+
+x-postgres: &postgres
+  image: postgres:17.12-alpine
+  restart: unless-stopped
+  entrypoint: ["/bin/sh", "/bd/arrancar.sh"]       # copia a chave TLS com permissoes 0600
+  # max_prepared_transactions > 0 e obrigatorio para o 2PC (por omissao e 0 e o PREPARE
+  # TRANSACTION falha). A documentacao recomenda um valor >= max_connections.
+  # A porta de cada no vem da variavel PGPORT (5433, 5434, 5435).
+  command: ["postgres",
+            "-c", "ssl=on",
+            "-c", "ssl_cert_file=/var/lib/postgresql/tls/servidor.crt",
+            "-c", "ssl_key_file=/var/lib/postgresql/tls/servidor.key",
+            "-c", "ssl_min_protocol_version=TLSv1.2",
+            "-c", "hba_file=/bd/pg_hba.conf",
+            "-c", "max_connections=40",
+            "-c", "max_prepared_transactions=40",
+            "-c", "shared_buffers=32MB",
+            "-c", "log_statement=all",
+            "-c", "log_line_prefix=%m [%p] %u@%d "]
+  mem_limit: 256m
+  healthcheck: &saude-pg
+    test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-p", "5433", "-U", "postgres"]
+    interval: 3s
+    retries: 40
+
+x-python: &python
+  build:
+    context: .
+    dockerfile: servicos/Dockerfile
+  image: global-scale-python
+  restart: unless-stopped
+  mem_limit: 192m
+
+services:
+  # ------------------------------------------------------------ bases de dados
+  db-europa:                                  # no A: contas e utilizadores europeus
+    <<: *postgres
+    hostname: db-europa
+    environment:
+      NO: db-europa
+      PGPORT: "5433"
+      POSTGRES_DB: globalscale
+      POSTGRES_PASSWORD: ${PG_SENHA_ADMIN:?corra python seguranca/gerar_materiais.py}
+      PG_SENHA_LEITURA: ${PG_SENHA_LEITURA}
+      PG_SENHA_TRANSACCOES: ${PG_SENHA_TRANSACCOES}
+    volumes:
+      - dados-europa:/var/lib/postgresql/data
+      - ./bd/arrancar.sh:/bd/arrancar.sh:ro
+      - ./bd/pg_hba.conf:/bd/pg_hba.conf:ro
+      - ./bd/regional/00-papeis.sh:/docker-entrypoint-initdb.d/00-papeis.sh:ro
+      - ./bd/regional/01-esquema.sql:/docker-entrypoint-initdb.d/01-esquema.sql:ro
+      - ./bd/europa/02-fragmento-dados.sql:/docker-entrypoint-initdb.d/02-fragmento-dados.sql:ro
+    secrets: [ca.crt, db-europa.crt, db-europa.key]
+    networks: { interna: { ipv4_address: 172.30.2.10 } }
+
+  db-america:                                 # no B: contas e utilizadores americanos
+    <<: *postgres
+    hostname: db-america
+    healthcheck:
+      <<: *saude-pg
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-p", "5434", "-U", "postgres"]
+    environment:
+      NO: db-america
+      PGPORT: "5434"
+      POSTGRES_DB: globalscale
+      POSTGRES_PASSWORD: ${PG_SENHA_ADMIN}
+      PG_SENHA_LEITURA: ${PG_SENHA_LEITURA}
+      PG_SENHA_TRANSACCOES: ${PG_SENHA_TRANSACCOES}
+    volumes:
+      - dados-america:/var/lib/postgresql/data
+      - ./bd/arrancar.sh:/bd/arrancar.sh:ro
+      - ./bd/pg_hba.conf:/bd/pg_hba.conf:ro
+      - ./bd/regional/00-papeis.sh:/docker-entrypoint-initdb.d/00-papeis.sh:ro
+      - ./bd/regional/01-esquema.sql:/docker-entrypoint-initdb.d/01-esquema.sql:ro
+      - ./bd/america/02-fragmento-dados.sql:/docker-entrypoint-initdb.d/02-fragmento-dados.sql:ro
+    secrets: [ca.crt, db-america.crt, db-america.key]
+    networks: { interna: { ipv4_address: 172.30.2.11 } }
+
+  db-coordenador:                             # registo duravel das decisoes 2PC
+    <<: *postgres
+    hostname: db-coordenador
+    healthcheck:
+      <<: *saude-pg
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-p", "5435", "-U", "postgres"]
+    environment:
+      NO: db-coordenador
+      PGPORT: "5435"
+      POSTGRES_DB: globalscale
+      POSTGRES_PASSWORD: ${PG_SENHA_ADMIN}
+      PG_SENHA_COORDENADOR: ${PG_SENHA_COORDENADOR}
+    volumes:
+      - dados-coordenador:/var/lib/postgresql/data
+      - ./bd/arrancar.sh:/bd/arrancar.sh:ro
+      - ./bd/pg_hba.conf:/bd/pg_hba.conf:ro
+      - ./bd/coordenador/00-papel.sh:/docker-entrypoint-initdb.d/00-papel.sh:ro
+      - ./bd/coordenador/01-esquema.sql:/docker-entrypoint-initdb.d/01-esquema.sql:ro
+    secrets: [ca.crt, db-coordenador.crt, db-coordenador.key]
+    networks: { interna: { ipv4_address: 172.30.2.12 } }
+
+  # ------------------------------------------------------------ sistema de ficheiros distribuido
+  nfs:                                        # servidor NFSv4 (NFS-Ganesha)
+    build: ./nfs
+    image: global-scale-nfs
+    restart: unless-stopped
+    privileged: true
+    mem_limit: 128m
+    volumes: [nfs-exportacao:/exports/dfs]
+    healthcheck:
+      test: ["CMD", "bash", "-c", "</dev/tcp/127.0.0.1/2049"]
+      interval: 3s
+      retries: 30
+    networks: { interna: { ipv4_address: 172.30.2.40 } }
+
+  # ------------------------------------------------------------ servicos Python
+  auth:                                       # emissor de tokens JWT (RS256)
+    <<: *python
+    build: { context: ., dockerfile: servicos/Dockerfile, args: { SERVICO: autenticacao } }
+    image: global-scale-autenticacao
+    hostname: auth
+    environment:
+      INSTANCIA: auth
+      PG_SENHA_LEITURA: ${PG_SENHA_LEITURA}
+    secrets: [ca.crt, auth.crt, auth.key, jwt-privada.pem]
+    ports: ["8000:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-m", "comum.saude", "https://localhost:8000/saude"]
+      interval: 5s
+      retries: 20
+    depends_on:
+      db-europa: { condition: service_healthy }
+      db-america: { condition: service_healthy }
+    networks:
+      frontal: { ipv4_address: 172.30.1.10 }
+      interna: { ipv4_address: 172.30.2.50 }
+
+  coordenador:                                # coordenador 2PC
+    <<: *python
+    build: { context: ., dockerfile: servicos/Dockerfile, args: { SERVICO: coordenador } }
+    image: global-scale-coordenador
+    hostname: coordenador
+    environment:
+      INSTANCIA: coordenador
+      PG_SENHA_TRANSACCOES: ${PG_SENHA_TRANSACCOES}
+      PG_SENHA_COORDENADOR: ${PG_SENHA_COORDENADOR}
+      LABORATORIO: ${LABORATORIO:-0}
+      CHAVE_LABORATORIO: ${CHAVE_LABORATORIO}
+    secrets: [ca.crt, coordenador.crt, coordenador.key, jwt-publica.pem,
+              assinatura-api-1.pub.pem, assinatura-api-2.pub.pem]
+    volumes:
+      - dfs:/mnt/dfs
+      - espera-coordenador:/var/spool/gs-auditoria
+    ports: ["127.0.0.1:8100:8100"]          # so para os testes de laboratorio no proprio PC
+    healthcheck:
+      test: ["CMD", "python", "-m", "comum.saude", "https://localhost:8100/saude"]
+      interval: 5s
+      retries: 20
+    depends_on:
+      db-coordenador: { condition: service_healthy }
+      db-europa: { condition: service_healthy }
+      db-america: { condition: service_healthy }
+      nfs: { condition: service_healthy }
+    networks: { interna: { ipv4_address: 172.30.2.20 } }
+
+  api-1: &api                                 # instancia 1 da API financeira
+    <<: *python
+    build: { context: ., dockerfile: servicos/Dockerfile, args: { SERVICO: api } }
+    image: global-scale-api
+    hostname: api-1
+    environment:
+      INSTANCIA: api-1
+      PORTA: "8001"
+      PG_SENHA_LEITURA: ${PG_SENHA_LEITURA}
+    secrets: [ca.crt, api-1.crt, api-1.key, jwt-publica.pem, assinatura-api-1.pem]
+    volumes:
+      - dfs:/mnt/dfs
+      - espera-api-1:/var/spool/gs-auditoria
+    ports: ["8001:8001"]
+    healthcheck:
+      test: ["CMD", "python", "-m", "comum.saude", "https://localhost:8001/saude"]
+      interval: 5s
+      retries: 20
+    depends_on:
+      db-europa: { condition: service_healthy }
+      db-america: { condition: service_healthy }
+      nfs: { condition: service_healthy }
+      coordenador: { condition: service_started }
+    networks:
+      frontal: { ipv4_address: 172.30.1.11 }
+      interna: { ipv4_address: 172.30.2.51 }
+
+  api-2:                                      # instancia 2 (mesma imagem, outra identidade)
+    <<: *api
+    hostname: api-2
+    environment:
+      INSTANCIA: api-2
+      PORTA: "8002"
+      PG_SENHA_LEITURA: ${PG_SENHA_LEITURA}
+    secrets: [ca.crt, api-2.crt, api-2.key, jwt-publica.pem, assinatura-api-2.pem]
+    volumes:
+      - dfs:/mnt/dfs
+      - espera-api-2:/var/spool/gs-auditoria
+    ports: ["8002:8002"]
+    healthcheck:
+      test: ["CMD", "python", "-m", "comum.saude", "https://localhost:8002/saude"]
+      interval: 5s
+      retries: 20
+    networks:
+      frontal: { ipv4_address: 172.30.1.12 }
+      interna: { ipv4_address: 172.30.2.52 }
+
+  # ------------------------------------------------------------ modulo legado (Java)
+  banco-parceiro:
+    build: ./banco-parceiro
+    image: global-scale-banco-parceiro
+    hostname: banco-parceiro
+    restart: unless-stopped
+    mem_limit: 160m
+    environment:
+      PORTA: "8200"
+      KEYSTORE: /run/secrets/banco-parceiro.p12
+      KEYSTORE_SENHA: laboratorio
+    secrets: [banco-parceiro.p12]
+    volumes: [dados-parceiro:/dados]
+    ports: ["127.0.0.1:8200:8200"]          # so para o teste de XML invalido no proprio PC
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "8200"]
+      interval: 5s
+      retries: 20
+    networks: { interna: { ipv4_address: 172.30.2.30 } }
+
+networks:
+  frontal:
+    driver: bridge
+    ipam: { config: [{ subnet: 172.30.1.0/24 }] }
+  interna:
+    driver: bridge
+    ipam: { config: [{ subnet: 172.30.2.0/24 }] }
+
+volumes:
+  dados-europa: {}
+  dados-america: {}
+  dados-coordenador: {}
+  dados-parceiro: {}
+  nfs-exportacao: {}               # disco do servidor NFS
+  espera-api-1: {}                 # eventos de auditoria ainda nao publicados no DFS
+  espera-api-2: {}
+  espera-coordenador: {}
+  # Volume NFS: e montado pelo Docker (cliente NFS do kernel Linux) a partir do servidor nfs.
+  # Os servicos so veem /mnt/dfs; nao sabem em que maquina estao os ficheiros.
+  dfs:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: "addr=172.30.2.40,rw,nfsvers=4.0,port=2049,soft,timeo=50,retrans=2"
+      device: ":/dfs"
+
+secrets:
+  ca.crt: { file: ./segredos/ca.crt }
+  auth.crt: { file: ./segredos/auth.crt }
+  auth.key: { file: ./segredos/auth.key }
+  api-1.crt: { file: ./segredos/api-1.crt }
+  api-1.key: { file: ./segredos/api-1.key }
+  api-2.crt: { file: ./segredos/api-2.crt }
+  api-2.key: { file: ./segredos/api-2.key }
+  coordenador.crt: { file: ./segredos/coordenador.crt }
+  coordenador.key: { file: ./segredos/coordenador.key }
+  db-europa.crt: { file: ./segredos/db-europa.crt }
+  db-europa.key: { file: ./segredos/db-europa.key }
+  db-america.crt: { file: ./segredos/db-america.crt }
+  db-america.key: { file: ./segredos/db-america.key }
+  db-coordenador.crt: { file: ./segredos/db-coordenador.crt }
+  db-coordenador.key: { file: ./segredos/db-coordenador.key }
+  banco-parceiro.p12: { file: ./segredos/banco-parceiro.p12 }
+  jwt-privada.pem: { file: ./segredos/jwt-privada.pem }
+  jwt-publica.pem: { file: ./segredos/jwt-publica.pem }
+  assinatura-api-1.pem: { file: ./segredos/assinatura-api-1.pem }
+  assinatura-api-2.pem: { file: ./segredos/assinatura-api-2.pem }
+  assinatura-api-1.pub.pem: { file: ./segredos/assinatura-api-1.pub.pem }
+  assinatura-api-2.pub.pem: { file: ./segredos/assinatura-api-2.pub.pem }
