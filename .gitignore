@@ -9,3 +9,4 @@ __pycache__/
 *.class
 docs/relatorio/~$*
 distribuido/enderecos.env
+.construir/
