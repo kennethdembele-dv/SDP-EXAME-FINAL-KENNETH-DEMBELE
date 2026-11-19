@@ -1,12 +1,12 @@
 # Cenario 10: Mensagem de transferencia adulterada
 
-**Resultado: PASSOU** (7/7 verificacoes, 18.5 s, executado em 2026-11-19 02:26:49)
+**Resultado: PASSOU** (7/7 verificacoes, 18.3 s, executado em 2026-11-19 03:06:46)
 
 **Objectivo:** Um intermediario altera o montante de uma ordem assinada por api-1. O coordenador verifica a assinatura RSA-PSS/SHA-256 antes de tocar nos saldos e recusa a ordem.
 
 ## Procedimento executado
 
-1. `02:26:32` Ordem de 1.00 assinada com a chave de api-1; o montante e alterado para 999 999.00
+1. `03:06:29` Ordem de 1.00 assinada com a chave de api-1; o montante e alterado para 999 999.00
 
 ## Saldos (lidos directamente nos nos PostgreSQL)
 
@@ -19,10 +19,10 @@
 
 ```
 {
-  "original": "{\"chave_idempotencia\":\"c10-32bb62db-40f2-4ab6-8fa4-a2f18781a238\",\"conta_destino\":\"US-2001\",\"conta_origem\":\"EU-1001\",\"emitido_em\":\"2026-11-19T00:26:32.484+00:00\",\"id\":\"d1f7d73e-306a-424e-8f04-38ce14fb91bb\",\"instancia\":\"api-1\",\"moeda\":\"EUR\",\"montante_centimos\":100,\"utilizador\":\"ana\"}",
-  "sha256 original": "cd51e0188b30ee56a9179b9543e5008128f6682462714ecbcfc41956ec254cc8",
-  "adulterada": "{\"chave_idempotencia\":\"c10-32bb62db-40f2-4ab6-8fa4-a2f18781a238\",\"conta_destino\":\"US-2001\",\"conta_origem\":\"EU-1001\",\"emitido_em\":\"2026-11-19T00:26:32.484+00:00\",\"id\":\"d1f7d73e-306a-424e-8f04-38ce14fb91bb\",\"instancia\":\"api-1\",\"moeda\":\"EUR\",\"montante_centimos\":99999900,\"utilizador\":\"ana\"}",
-  "sha256 adulterada": "56817e6d8e273e20d8d183c5f3350ff30451c5864d0cb1040695192666cb341d"
+  "original": "{\"chave_idempotencia\":\"c10-d42f61e2-6d0f-4418-9f93-c1fe72f1ed40\",\"conta_destino\":\"US-2001\",\"conta_origem\":\"EU-1001\",\"emitido_em\":\"2026-11-19T01:06:29.393+00:00\",\"id\":\"22cd0e0d-f6fd-4b4a-a2be-49b76a76d61e\",\"instancia\":\"api-1\",\"moeda\":\"EUR\",\"montante_centimos\":100,\"utilizador\":\"ana\"}",
+  "sha256 original": "81b61c85e1c2b29d504996aa10ce822ab8cbfe924ed8a88bde4e5bc325a5641f",
+  "adulterada": "{\"chave_idempotencia\":\"c10-d42f61e2-6d0f-4418-9f93-c1fe72f1ed40\",\"conta_destino\":\"US-2001\",\"conta_origem\":\"EU-1001\",\"emitido_em\":\"2026-11-19T01:06:29.393+00:00\",\"id\":\"22cd0e0d-f6fd-4b4a-a2be-49b76a76d61e\",\"instancia\":\"api-1\",\"moeda\":\"EUR\",\"montante_centimos\":99999900,\"utilizador\":\"ana\"}",
+  "sha256 adulterada": "c97250f20b0a0a2cee24ff13435c5b4914a58262891779b57e687835bdb11b8e"
 }
 ```
 
@@ -55,7 +55,7 @@
     "http": 201,
     "instancia": null,
     "corpo": {
-      "id": "d1f7d73e-306a-424e-8f04-38ce14fb91bb",
+      "id": "22cd0e0d-f6fd-4b4a-a2be-49b76a76d61e",
       "estado": "CONCLUIDA",
       "explicacao": "confirmada em todos os participantes: um debito e um credito",
       "decisao": "COMMIT",
@@ -67,17 +67,17 @@
       "montante_centimos": 100,
       "moeda": "EUR",
       "utilizador": "ana",
-      "chave_idempotencia": "c10-32bb62db-40f2-4ab6-8fa4-a2f18781a238",
+      "chave_idempotencia": "c10-d42f61e2-6d0f-4418-9f93-c1fe72f1ed40",
       "instancia_api": "api-1",
       "participantes": [
         {
           "no": "america",
-          "gid": "gs-d1f7d73e-306a-424e-8f04-38ce14fb91bb-america",
+          "gid": "gs-22cd0e0d-f6fd-4b4a-a2be-49b76a76d61e-america",
           "estado": "CONFIRMADO"
         },
         {
           "no": "europa",
-          "gid": "gs-d1f7d73e-306a-424e-8f04-38ce14fb91bb-europa",
+          "gid": "gs-22cd0e0d-f6fd-4b4a-a2be-49b76a76d61e-europa",
           "estado": "CONFIRMADO"
         }
       ],
@@ -86,9 +86,9 @@
         "estado": "POR_ENVIAR",
         "referencia": null
       },
-      "criada_em": "2026-11-19T00:26:41.780040+00:00",
-      "decidida_em": "2026-11-19T00:26:42.158445+00:00",
-      "concluida_em": "2026-11-19T00:26:42.507547+00:00",
+      "criada_em": "2026-11-19T01:06:38.626837+00:00",
+      "decidida_em": "2026-11-19T01:06:39.039737+00:00",
+      "concluida_em": "2026-11-19T01:06:39.359369+00:00",
       "repetido": false
     }
   }
@@ -99,8 +99,8 @@
 
 ```
 {
- "transferencia_id": "d1f7d73e-306a-424e-8f04-38ce14fb91bb",
- "data_utc": "2026-11-19T00:26:34.585+00:00",
+ "transferencia_id": "22cd0e0d-f6fd-4b4a-a2be-49b76a76d61e",
+ "data_utc": "2026-11-19T01:06:31.493+00:00",
  "servico": "coordenador",
  "evento": "ORDEM_RECUSADA",
  "resultado": "ASSINATURA_INVALIDA",
@@ -110,8 +110,8 @@
   "utilizador": "ana"
  }
 }{
- "transferencia_id": "6f918ac4-5257-42e4-a8ee-68c395d156c4",
- "data_utc": "2026-11-19T00:26:36.812+00:00",
+ "transferencia_id": "17aaf9a5-4f0f-49e2-b3cd-3b23cd3c8ed8",
+ "data_utc": "2026-11-19T01:06:33.658+00:00",
  "servico": "coordenador",
  "evento": "ORDEM_RECUSADA",
  "resultado": "ASSINATURA_INVALIDA",
@@ -121,8 +121,8 @@
   "utilizador": "ana"
  }
 }{
- "transferencia_id": "35c938ca-72aa-4ad1-b976-c10251ec05db",
- "data_utc": "2026-11-19T00:26:38.943+00:00",
+ "transferencia_id": "35ed2685-a743-4134-862b-90efa2f9f760",
+ "data_utc": "2026-11-19T01:06:35.785+00:00",
  "servico": "coordenador",
  "evento": "ORDEM_RECUSADA",
  "resultado": "ASSINATURA_INVALIDA",

@@ -42,6 +42,8 @@ os.environ.setdefault("GS_APIS", f"https://{os.environ.get('GS_HOST', 'localhost
 
 EVID = RAIZ / "evidencias"
 CA = str(RAIZ / "segredos" / "ca.crt")
+# GS_MOSTRAR=1: mostra tambem no ecra os blocos de evidencia (estados, diarios, saldos), para as capturas.
+MOSTRAR = os.environ.get("GS_MOSTRAR") == "1"
 HOST = os.environ.get("GS_HOST", "localhost")
 API1, API2 = f"https://{HOST}:8001", f"https://{HOST}:8002"
 COORD = f"https://{HOST}:8100"
@@ -164,6 +166,8 @@ class Evidencia:
         self.blocos: list[tuple[str, str]] = []
         self.dados: dict = {}
         self.inicio = time.time()
+        if MOSTRAR:
+            print(f"    {titulo}")
 
     def passo(self, texto: str):
         t = time.strftime("%H:%M:%S")
@@ -171,9 +175,21 @@ class Evidencia:
         print(f"   {t} {texto}")
 
     def bloco(self, titulo: str, conteudo):
+        compacto = None
         if not isinstance(conteudo, str):
+            compacto = json.dumps(conteudo, ensure_ascii=False, default=str)
             conteudo = json.dumps(conteudo, indent=2, ensure_ascii=False, default=str)
         self.blocos.append((titulo, conteudo))
+        if MOSTRAR:                          # versao curta para o ecra; o ficheiro de evidencia tem tudo
+            print(f"   --- {titulo}")
+            if compacto is not None:
+                print(f"       {compacto[:210]}{' ...' if len(compacto) > 210 else ''}")
+                return
+            partes = [l for l in conteudo.splitlines() if l.strip()]
+            for l in partes[:8]:
+                print(f"       {l[:108]}")
+            if len(partes) > 8:
+                print(f"       ... (+{len(partes) - 8} linhas no ficheiro de evidencia)")
 
     def verificar(self, descricao: str, condicao: bool) -> bool:
         self.verificacoes.append((descricao, bool(condicao)))
@@ -182,6 +198,8 @@ class Evidencia:
 
     def saldos(self, rotulo: str, valores: dict, contas: list[str]):
         self.dados.setdefault("saldos", {})[rotulo] = {c: valores[c] for c in contas}
+        if MOSTRAR:
+            print(f"   --- saldos {rotulo} (nos PostgreSQL): " + "  ".join(f"{c}={eur(valores[c])}" for c in contas))
 
     @property
     def passou(self) -> bool:
@@ -1013,11 +1031,14 @@ def main():
     # Soma dos dados de demonstracao: Europa 5000 + 1500 + 300, America 3000 + 800 = 10 600.00 EUR.
     # As transferencias so movem dinheiro entre contas, por isso a soma nunca pode mudar.
     total_inicial = 1060000
+    contexto = EVID / ".contexto.json"          # partilhado entre execucoes separadas (uma janela por cenario)
+    if contexto.exists():
+        CONTEXTO.update(json.loads(contexto.read_text(encoding="utf-8")))
     CONTEXTO["debitos_eu1003_antes"] = int(psql("db-europa", 5433, "SELECT count(*) FROM movimentos "
                                                                    "WHERE conta_id='EU-1003' AND tipo='DEBITO'")[0][0])
     resultados = []
     for n in escolhidos:
-        print(f"\n=== Cenario {n}: {CENARIOS[n].__name__}")
+        print(f"\n=== Cenario {n}")
         try:
             ev = CENARIOS[n]()
         except Exception:
@@ -1030,13 +1051,14 @@ def main():
                 compose("start", s)
         ev.gravar()
         resultados.append(ev)
+        contexto.write_text(json.dumps({k: v for k, v in CONTEXTO.items() if k.startswith("tid")}), encoding="utf-8")
     print("\n=== Verificacao global")
     final = invariantes(total_inicial)
     final.gravar()
     linhas = ["# Resumo das evidencias", "", f"Executado em {time.strftime('%Y-%m-%d %H:%M:%S')} "
               f"(Docker Compose local, um computador). Cada linha indica a data da execucao no ficheiro do cenario.", "",
               "| # | Cenario | Resultado | Verificacoes | Dois PCs |", "|---|---|---|---|---|"]
-    gravadas = sorted((json.loads(f.read_text(encoding="utf-8")) | {"ficheiro": f.stem} for f in EVID.glob("*.json")),
+    gravadas = sorted((json.loads(f.read_text(encoding="utf-8")) | {"ficheiro": f.stem} for f in EVID.glob("[0-9]*.json")),
                       key=lambda d: d["cenario"])
     for d in gravadas:                   # todas as evidencias gravadas, incluindo as de execucoes anteriores
         ok = sum(1 for _, o in d["verificacoes"] if o)
@@ -1044,7 +1066,12 @@ def main():
         linhas.append(f"| {d['cenario']} | [{d['titulo']}]({d['ficheiro']}.md) | {'PASSOU' if d['passou'] else 'FALHOU'} | "
                       f"{ok}/{len(d['verificacoes'])} | {'sim (ver nota)' if dois else ''} |")
     (EVID / "RESUMO.md").write_text("\n".join(linhas) + "\n", encoding="utf-8")
-    print("\n" + "\n".join(linhas))
+    if MOSTRAR:
+        for ev in resultados + [final]:
+            print(f"=== {ev.titulo}: {'PASSOU' if ev.passou else 'FALHOU'} "
+                  f"({sum(1 for _, o in ev.verificacoes if o)}/{len(ev.verificacoes)})")
+    else:
+        print("\n" + "\n".join(linhas))
     sys.exit(0 if all(ev.passou for ev in resultados + [final]) else 1)
 
 

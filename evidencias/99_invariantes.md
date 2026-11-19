@@ -1,6 +1,6 @@
 # Cenario 99: Verificacao global de consistencia
 
-**Resultado: PASSOU** (5/5 verificacoes, 2.8 s, executado em 2026-11-19 02:27:39)
+**Resultado: PASSOU** (5/5 verificacoes, 2.5 s, executado em 2026-11-19 03:07:50)
 
 **Objectivo:** Conservacao dos fundos e um debito + um credito por transferencia, em todo o sistema.
 
@@ -23,8 +23,8 @@
 
 ```
 {
-  "ABORTADA": 9,
-  "CONCLUIDA": 16
+  "CONCLUIDA": 16,
+  "ABORTADA": 9
 }
 ```
 

@@ -1,14 +1,14 @@
 # Cenario 8: Queda de uma instancia da API e utilizacao da outra
 
-**Resultado: PASSOU** (5/5 verificacoes, 23.7 s, executado em 2026-11-19 02:26:17)
+**Resultado: PASSOU** (5/5 verificacoes, 23.4 s, executado em 2026-11-19 03:05:58)
 
 **Objectivo:** Com api-1 parada, o cliente passa para api-2. O token emitido antes continua valido porque api-2 o valida localmente com a chave publica.
 
 ## Procedimento executado
 
-1. `02:25:54` Com as duas instancias activas, respondeu api-1
-2. `02:25:54` docker compose stop api-1
-3. `02:26:07` docker compose start api-1
+1. `03:05:36` Com as duas instancias activas, respondeu api-1
+2. `03:05:36` docker compose stop api-1
+3. `03:05:49` docker compose start api-1
 
 ## Saldos (lidos directamente nos nos PostgreSQL)
 
@@ -43,7 +43,7 @@
     "http": 201,
     "instancia": "api-2",
     "corpo": {
-      "id": "ea670f49-5b30-4695-b2b0-a15326719f0e",
+      "id": "cc6f1627-cd8b-46d0-9edc-f52816c7a6e8",
       "estado": "CONCLUIDA",
       "explicacao": "confirmada em todos os participantes: um debito e um credito",
       "decisao": "COMMIT",
@@ -55,17 +55,17 @@
       "montante_centimos": 500,
       "moeda": "EUR",
       "utilizador": "ana",
-      "chave_idempotencia": "cli-24d5cb2e-8d79-4d37-81eb-33262d58a76f",
+      "chave_idempotencia": "cli-727f7465-290b-4a5f-9988-b3745e0ad6ce",
       "instancia_api": "api-2",
       "participantes": [
         {
           "no": "america",
-          "gid": "gs-ea670f49-5b30-4695-b2b0-a15326719f0e-america",
+          "gid": "gs-cc6f1627-cd8b-46d0-9edc-f52816c7a6e8-america",
           "estado": "CONFIRMADO"
         },
         {
           "no": "europa",
-          "gid": "gs-ea670f49-5b30-4695-b2b0-a15326719f0e-europa",
+          "gid": "gs-cc6f1627-cd8b-46d0-9edc-f52816c7a6e8-europa",
           "estado": "CONFIRMADO"
         }
       ],
@@ -74,9 +74,9 @@
         "estado": "POR_ENVIAR",
         "referencia": null
       },
-      "criada_em": "2026-11-19T00:26:06.639342+00:00",
-      "decidida_em": "2026-11-19T00:26:07.190977+00:00",
-      "concluida_em": "2026-11-19T00:26:07.554272+00:00",
+      "criada_em": "2026-11-19T01:05:48.867999+00:00",
+      "decidida_em": "2026-11-19T01:05:49.253441+00:00",
+      "concluida_em": "2026-11-19T01:05:49.662141+00:00",
       "repetido": false
     }
   }

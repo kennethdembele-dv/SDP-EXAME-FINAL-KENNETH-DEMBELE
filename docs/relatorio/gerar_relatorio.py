@@ -4,8 +4,8 @@
     python docs/relatorio/gerar_relatorio.py
     powershell -ExecutionPolicy Bypass -File docs/relatorio/exportar_pdf.ps1
 
-As evidencias de evidencias/*.json (gravadas por testes/cenarios.py) entram automaticamente como
-capturas com aspecto de terminal. Gerar de novo depois de correr os testes actualiza o relatorio.
+As evidencias de evidencias/*.json (gravadas por testes/cenarios.py) e as capturas de ecra reais de
+docs/relatorio/capturas/ (feitas por capturar_ecra.py) entram automaticamente.
 """
 import datetime as dt
 import html
@@ -59,30 +59,6 @@ def png_de_svg(svg: str, nome: str, largura=1800) -> str:
     return png_de_html("<html><head><style>text{font-family:Calibri,'Segoe UI',sans-serif}</style></head>"
                        f"<body style='margin:0;background:#fff;overflow:hidden'>{svg}</body></html>",
                        nome, largura, altura)
-
-
-CORES = [("[x]", "#5ee27a"), ("FALHOU", "#ff6b6b"), ("RECUSADO", "#ffb454"), ("ABORT", "#ffb454"), ("HTTP 4", "#ffb454"),
-         ("HTTP 5", "#ffb454"), ("lock timeout", "#ffb454"), ("CONCLUIDA", "#5ee27a"), ("CONFIRMADO", "#5ee27a"),
-         ("COMMIT", "#7cc4ff"), ("PREPARE", "#7cc4ff"), ("$ ", "#e6db74")]
-
-
-def captura(nome: str, titulo: str, linhas: list[str], maximo=34) -> str:
-    linhas = [l[:126] for l in linhas if l.strip()]
-    if len(linhas) > maximo:
-        linhas = linhas[:maximo - 1] + [f"... ({len(linhas) - maximo + 1} linhas omitidas; ver evidencias/)"]
-
-    def cor(l):
-        t = html.escape(l)
-        for chave, c in CORES:
-            if chave in l:
-                return f'<span style="color:{c}">{t}</span>'
-        return t
-    corpo = "\n".join(cor(l) for l in linhas)
-    altura = 34 + 18 * len(linhas) + 26
-    return png_de_html("<html><body style='margin:0;background:#1e1e1e'>"
-                       "<div style='background:#323233;color:#ccc;font:13px Segoe UI;padding:6px 12px'>"
-                       f"{html.escape(titulo)}</div><pre style='margin:0;padding:10px 14px;color:#d4d4d4;"
-                       f"font:13px/1.35 Consolas,monospace'>{corpo}</pre></body></html>", nome, 1060, altura)
 
 
 # ------------------------------------------------------------------ diagramas
@@ -147,49 +123,13 @@ SVG_2PC = """<svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg">
 # ------------------------------------------------------------------ evidencias
 def carregar_evidencias() -> dict[int, dict]:
     res = {}
-    for f in sorted(EVID.glob("*.json")):
+    for f in sorted(EVID.glob("[0-9]*.json")):
         try:
             d = json.loads(f.read_text(encoding="utf8"))
             res[d["cenario"]] = d | {"ficheiro": f.stem}
         except (ValueError, KeyError):
             pass
     return res
-
-
-def evidencia(doc, ev: dict, n: int, legenda: str, blocos: list[str], extra=None, por_bloco=16):
-    d = ev.get(n)
-    if d is None:
-        par(doc, f"**Por executar.** Esta evidência é gravada por `python testes/cenarios.py {n}` em "
-                 f"`evidencias/`. Gerar de novo o relatório depois de correr o teste insere aqui a saída real.")
-        return
-    linhas = [f"$ python testes/cenarios.py {n}      # {d['titulo']}"]
-    for titulo in blocos:
-        for chave, conteudo in d["blocos"].items():
-            if chave.startswith(titulo):
-                partes = [l for l in conteudo.splitlines() if l.strip()]
-                linhas.append(f"--- {chave}")
-                linhas += partes[:por_bloco]
-                if len(partes) > por_bloco:
-                    linhas.append(f"    ... ({len(partes) - por_bloco} linhas; ver evidencias/{d['ficheiro']}.md)")
-                break
-    if extra:
-        linhas += extra(d)
-    ok = sum(1 for _, o in d["verificacoes"] if o)
-    linhas.append(f"--- verificações: {ok}/{len(d['verificacoes'])} -> {'PASSOU' if d['passou'] else 'FALHOU'}")
-    linhas += [f"[x] {v}" if o else f"FALHOU: {v}" for v, o in d["verificacoes"]]
-    png = captura(f"ev{n:02d}", f"Terminal - cenário {n}", linhas, maximo=80)
-    figura(doc, png, f"{legenda} Saída real gravada em evidencias/{d['ficheiro']}.md.", largura=15.2)
-
-
-def saldos_extra(d):
-    s = d["dados"].get("saldos")
-    if not s:
-        return []
-    rot = list(s)
-    out = ["--- saldos lidos nos nós PostgreSQL (EUR): conta | " + " | ".join(rot)]
-    for conta in s[rot[0]]:
-        out.append(f"    {conta} | " + " | ".join(f"{s[r][conta] / 100:,.2f}".replace(",", " ") for r in rot))
-    return out
 
 
 # ------------------------------------------------------------------ capa
@@ -225,8 +165,86 @@ def capa(doc, logo):
 
 
 # ------------------------------------------------------------------ conteudo
+# Titulos e objectivos dos cenarios, com a acentuacao do relatorio (os ficheiros de evidencia sao ASCII).
+CENARIOS = {
+    0: ("Ambiente, rede, DNS e TLS",
+        "Mostrar os nós, as redes, os endereços IP e as portas, e provar que as ligações ao PostgreSQL e às APIs usam "
+        "TLS verificado: sem TLS ou com outro nome no certificado, a ligação é recusada.", ""),
+    1: ("Transferência bem-sucedida entre Europa e América",
+        "Transferir 125,50 EUR de EU-1001 (nó Europa) para US-2001 (nó América) com 2PC e confirmar um débito, um "
+        "crédito, os comandos PREPARE TRANSACTION e COMMIT PREPARED nos dois nós e a confirmação do banco parceiro.",
+        "Num só PC os dois nós são contentores diferentes; com distribuido/ o nó Europa corre no PC A e o nó América no PC B."),
+    2: ("Saldo insuficiente e outras validações",
+        "O bruno (EU-1003, 300,00) tenta transferir 1000,00: o nó Europa vota NÃO e a decisão é ABORT. Testam-se também "
+        "conta inexistente, montante negativo, três casas decimais, origem igual ao destino e moeda diferente.", ""),
+    3: ("Transferências concorrentes sobre a mesma conta",
+        "Dez transferências simultâneas de 50,00 a partir de EU-1003, metade pela api-1 e metade pela api-2: só passam "
+        "as que o saldo permite e o saldo nunca fica negativo.", ""),
+    4: ("Repetição de um pedido com a mesma chave de idempotência",
+        "O mesmo pedido enviado à api-1 e repetido na api-2 com a mesma Idempotency-Key produz uma só transferência; a "
+        "mesma chave com outro montante é recusada (409); cinco pedidos simultâneos com a mesma chave criam uma só.", ""),
+    5: ("Falha de um participante antes e durante a preparação",
+        "(a) O nó Europa está em baixo quando chega uma transferência US-2001 → EU-1001: nenhum participante prepara e a "
+        "decisão é ABORT. (b) O nó América cai depois de o Europa ter preparado: o Europa faz ROLLBACK PREPARED. "
+        "Nenhum saldo muda.", "Com dois PCs pode desligar-se a rede do PC B em vez de parar o contentor."),
+    6: ("Falha durante a confirmação e recuperação",
+        "(a) A decisão COMMIT já está gravada e o Europa já confirmou quando o nó América cai: a transferência fica "
+        "COMMIT_DECIDIDO, a transacção preparada sobrevive ao reinício do PostgreSQL e a recuperação conclui o COMMIT. "
+        "(b) Falha de rede: o nó América fica sem responder (docker compose pause); o COMMIT esgota o tempo, a decisão "
+        "não muda e a transferência conclui quando a rede volta.", "Com dois PCs pode desligar-se a rede do PC B durante a pausa."),
+    7: ("Reinício do coordenador com transacções pendentes",
+        "(a) O coordenador cai depois de gravar COMMIT: as linhas ficam bloqueadas e, ao reiniciar, conclui o COMMIT nos "
+        "dois nós. (b) O coordenador cai depois de preparar mas antes de decidir: ao reiniciar faz abort presumido.", ""),
+    8: ("Queda de uma instância da API e utilização da outra",
+        "Com a api-1 parada, o cliente passa para a api-2. O token emitido antes continua válido porque a api-2 o valida "
+        "localmente com a chave pública.", ""),
+    9: ("Token inválido ou expirado e acesso sem autorização",
+        "As APIs validam assinatura, expiração, emissor e destinatário do JWT e só deixam o titular consultar ou "
+        "movimentar a conta; com o serviço de autenticação parado, um token válido continua aceite.", ""),
+    10: ("Mensagem de transferência adulterada",
+         "Um intermediário altera o montante de uma ordem assinada pela api-1. O coordenador verifica a assinatura "
+         "RSA-PSS/SHA-256 antes de tocar nos saldos e recusa a ordem; recusa também uma chave desconhecida e uma ordem "
+         "antiga, e aceita a ordem original intacta.", ""),
+    11: ("Comunicação entre Python e Java (XML sobre HTTPS)",
+         "O coordenador (Python) confirma cada transferência concluída no banco parceiro (Java) com XML e a API consulta "
+         "esse registo. Testam-se a validação do XML no Java e a indisponibilidade do Java.", ""),
+    12: ("Escrita e leitura dos ficheiros partilhados (NFS)",
+         "A api-1 escreve um relatório no NFS e a api-2 lê-o; os eventos de auditoria de vários serviços ficam no mesmo "
+         "DFS; com o NFS em baixo os eventos ficam em espera e são publicados depois.",
+         "Com dois PCs, o servidor NFS está no PC A e a api-2 do PC B monta-o pela rede."),
+}
+
+
+CAPTURAS = AQUI / "capturas"
+_figuras = [0]
+
+
+def fig_numerada(doc, png, legenda, largura=16.0):
+    _figuras[0] += 1
+    figura(doc, str(png), f"Figura {_figuras[0]}. {legenda}", largura=largura)
+    return _figuras[0]
+
+
+def captura_real(doc, nome, legenda, largura=16.0):
+    """Captura de ecra real (docs/relatorio/capturas), feita por capturar_ecra.py neste computador."""
+    png = CAPTURAS / nome
+    partes = [png.with_name(f"{png.stem}_{i}{png.suffix}") for i in (1, 2)]
+    if not png.exists() and all(p.exists() for p in partes):
+        # A saida nao coube numa janela: a mesma janela foi fotografada no inicio e no fim.
+        fig_numerada(doc, partes[0], legenda + " Início da janela. Captura de ecrã real do computador de "
+                                               "desenvolvimento.", largura)
+        return fig_numerada(doc, partes[1], legenda + " Fim da mesma janela (continuação).", largura)
+    if not png.exists():
+        par(doc, f"**Captura em falta:** `{nome}` (gerar com `python docs/relatorio/capturar_ecra.py`).")
+        return None
+    return fig_numerada(doc, png, legenda + " Captura de ecrã real do computador de desenvolvimento.", largura)
+
+
 def conteudo(doc, fig, ev):
-    H1 = lambda t: doc.add_heading(t, level=1)
+    def H1(t):
+        h = doc.add_heading(t, level=1)
+        h.paragraph_format.page_break_before = True          # cada seccao principal na sua pagina
+        return h
     H2 = lambda t: doc.add_heading(t, level=2)
 
     p = doc.add_paragraph()
@@ -244,11 +262,10 @@ def conteudo(doc, fig, ev):
              "Os treze cenários de teste, incluindo quedas de nós e uma falha de rede durante cada fase do 2PC, foram "
              "executados em Docker a partir de uma instalação limpa e as evidências reais estão no repositório.")
     p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(12)
+    p.paragraph_format.page_break_before = True               # o indice na sua pagina
     r = p.add_run("Índice")
     r.bold, r.font.size, r.font.color.rgb = True, Pt(13), AZUL
     campo(doc.add_paragraph(), 'TOC \\o "1-2" \\h \\z \\u', "(o índice é actualizado pelo Word)")
-    doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
 
     # ---------------------------------------------------------------- 1
     H1("1. Introdução")
@@ -302,7 +319,7 @@ def conteudo(doc, fig, ev):
     ], [3.6, 5.6, 7.4])
 
     H2("2.2 Arquitectura implementada")
-    figura(doc, fig["arq"], "Figura 1. Arquitectura do Global-Scale System: nós, redes, protocolos e portas.", largura=16.6)
+    fig_numerada(doc, fig["arq"], "Arquitectura do Global-Scale System: nós, redes, protocolos e portas.", largura=16.6)
     tabela(doc, ["Nó", "Tecnologia", "Função"], [
         ["auth", "Python 3.12, FastAPI", "Nó emissor de tokens: verifica a palavra-passe e assina JWT RS256"],
         ["api-1, api-2", "Python 3.12, FastAPI", "API REST; validam o JWT localmente e assinam as ordens"],
@@ -347,8 +364,10 @@ def conteudo(doc, fig, ev):
                  ". O coordenador do \"PC A\" preparou e confirmou no db-america do \"PC B\" por TLS 1.3, e a api-2 do "
                  "\"PC B\" montou o NFS do \"PC A\". O ensaio não substitui a prova física com duas máquinas, que se faz "
                  "com o mesmo procedimento trocando `host-gateway` pelos IP reais.")
-    evidencia(doc, ev, 0, "Figura 2. Redes, IP e resolução de nomes dentro da api-1 (cenário 0).",
-              ["Redes e enderecos IP", "DNS interno"])
+    captura_real(doc, "ambiente.png", "Contentores, imagens, portas e endereços IP nas duas redes (docker compose ps e "
+                 "docker network inspect).")
+    captura_real(doc, "ensaio_dois_pcs.png", "Ensaio da configuração de dois computadores num só PC "
+                 "(python testes/ensaio_distribuido.py).")
 
     H2("2.4 Sistemas operativos e contentores")
     par(doc, "Cada serviço corre num contentor Linux: Alpine para o PostgreSQL e o Java, Debian slim para o Python e "
@@ -360,6 +379,7 @@ def conteudo(doc, fig, ev):
              "Do ponto de vista dos sistemas operativos distribuídos, a camada Docker oferece transparência de "
              "localização (o serviço é um nome, não uma máquina) e de migração (o mesmo contentor corre no PC A ou "
              "no PC B sem alterar o código).")
+    captura_real(doc, "docker_desktop.png", "Docker Desktop com os contentores do Global-Scale em execução.")
 
     H2("2.5 Sistema de ficheiros distribuído (NFS)")
     par(doc, "O DFS é um servidor NFSv4 em espaço de utilizador, o NFS-Ganesha [20], que exporta `/dfs`. O volume "
@@ -418,7 +438,7 @@ def conteudo(doc, fig, ev):
              "`pg_prepared_xacts` lista as transacções preparadas e o seu identificador global (gid) [4]. O parâmetro "
              "`max_prepared_transactions` é 0 por omissão, o que desactiva a funcionalidade, e só pode ser alterado "
              "no arranque; está configurado com 40, igual a `max_connections`, como recomenda a documentação [3].")
-    figura(doc, fig["2pc"], "Figura 3. Sequência de uma transferência com 2PC.", largura=16.6)
+    fig_numerada(doc, fig["2pc"], "Sequência de uma transferência com 2PC.", largura=16.6)
     topicos(doc, [
         "**Fase 1 (preparação).** Para cada participante, por uma ordem fixa (primeiro Europa, depois América): "
         "`BEGIN`, `UPDATE` do saldo (o débito só se `saldo >= montante`), `INSERT` do movimento e `PREPARE "
@@ -553,11 +573,8 @@ async def decidir(tid, decisao):                                  # gravada ANTE
         ["GET /api/v1/parceiro/transferencias/{id}", "Consulta no banco parceiro (Java)"],
         ["POST /api/v1/relatorios/extracto, GET /api/v1/relatorios[/{nome}]", "Extractos CSV no DFS"],
     ], [8.2, 8.4])
-    swagger = EVID / "swagger.png"
-    if swagger.exists():
-        figura(doc, str(swagger), "Figura 4. Documentação OpenAPI da api-1 (Swagger em https://localhost:8001/docs), "
-                                  "captura de ecrã do sistema em execução. A especificação está também em docs/openapi/.",
-               largura=13.5)
+    captura_real(doc, "swagger_edge.png", "Documentação OpenAPI da api-1 no Microsoft Edge (https://localhost:8001/docs). "
+                 "A especificação está também em docs/openapi/.", largura=15.0)
 
     H2("4.2 Módulo legado em Java e contrato XML")
     par(doc, "O banco parceiro (`banco-parceiro/src/BancoParceiro.java`) simula o sistema de um banco externo. Está "
@@ -623,8 +640,7 @@ async def decidir(tid, decisao):                                  # gravada ANTE
              "com o certificado, protegendo contra intermediários [6]. O cenário 0 prova as três situações: a ligação "
              "sem TLS é recusada, a ligação ao IP (nome que não está no certificado) é recusada, e as ligações dos "
              "serviços aparecem em `pg_stat_ssl` com TLS 1.3.")
-    evidencia(doc, ev, 0, "Figura 5. TLS nas ligações ao PostgreSQL e à API (cenário 0).",
-              ["Ligacoes ao db-europa", "Ligacoes de teste", "HTTPS na API"])
+    par(doc, "A captura da execução do cenário 0, com estas ligações, está na secção 6.1.")
 
     H2("5.2 Autenticação distribuída com JWT")
     par(doc, "O serviço `auth` é o nó emissor de tokens: verifica a palavra-passe no nó regional do utilizador e emite "
@@ -674,48 +690,63 @@ async def decidir(tid, decisao):                                  # gravada ANTE
     H1("6. Evidências de funcionamento")
     par(doc, "Os cenários são executados por `python testes/cenarios.py` com o sistema a correr em Docker. Cada cenário "
              "provoca falhas reais (`docker compose stop`, `kill`, `start`, e `pause`/`unpause` para simular uma falha de "
-             "rede em que o nó fica vivo mas deixa de responder), lê os saldos directamente nos nós "
-             "PostgreSQL, de forma independente da API, e grava um ficheiro `.md` e um `.json` em `evidencias/`. Para "
-             "escolher o momento exacto da falha, o coordenador tem pontos de pausa de laboratório "
-             "(`POST /laboratorio/pausa`, activos só com `LABORATORIO=1` e protegidos por uma chave); a falha em si é "
-             "sempre real. As figuras seguintes são capturas da saída gravada.")
+             "rede em que o nó fica vivo mas deixa de responder), lê os saldos directamente nos nós PostgreSQL, de forma "
+             "independente da API, e grava um ficheiro `.md` e um `.json` em `evidencias/`. Para escolher o momento exacto "
+             "da falha, o coordenador tem pontos de pausa de laboratório (`POST /laboratorio/pausa`, activos só com "
+             "`LABORATORIO=1` e protegidos por uma chave); a falha em si é sempre real.")
+    par(doc, "**Como foram obtidas as imagens.** Cada cenário foi executado numa janela própria do PowerShell no computador "
+             "de desenvolvimento (Windows 10 Pro, Docker Desktop 4.99) e a imagem é a captura de ecrã dessa janela no fim "
+             "da execução (`docs/relatorio/capturar_ecra.py`). A janela mostra os passos com a hora, um resumo dos estados "
+             "internos (registo do coordenador, `pg_prepared_xacts`, respostas), as verificações e, no fim, a verificação "
+             "global de consistência de todo o sistema. O conteúdo completo de cada bloco está no ficheiro de evidência "
+             "indicado. Antes desta execução, os mesmos 13 cenários passaram numa execução feita a partir de um clone limpo "
+             "do repositório, com certificados e palavras-passe novos (`evidencias/REPRODUCAO_LIMPA.md`).")
     resumo = []
     for n in range(0, 13):
         d = ev.get(n)
-        resumo.append([str(n), d["titulo"] if d else "(por executar)",
+        resumo.append([str(n), CENARIOS[n][0],
                        ("PASSOU" if d["passou"] else "FALHOU") if d else "-",
                        f"{sum(1 for _, o in d['verificacoes'] if o)}/{len(d['verificacoes'])}" if d else "-"])
     d99 = ev.get(99)
     if d99:
-        resumo.append(["99", d99["titulo"], "PASSOU" if d99["passou"] else "FALHOU",
+        resumo.append(["99", "Verificação global de consistência", "PASSOU" if d99["passou"] else "FALHOU",
                        f"{sum(1 for _, o in d99['verificacoes'] if o)}/{len(d99['verificacoes'])}"])
     tabela(doc, ["#", "Cenário", "Resultado", "Verificações"], resumo, [1.0, 10.6, 2.4, 2.6])
+    captura_real(doc, "testes_unitarios.png", "Testes unitários (pytest): dinheiro, assinaturas, JWT, scrypt e contrato XML.")
+    captura_real(doc, "cliente_transferencia.png", "Cliente de linha de comandos: saldo e transferência Europa → América.")
 
-    figs = [
-        (1, "Figura 6. Transferência bem-sucedida Europa → América (cenário 1): resposta, movimentos e comandos 2PC nos nós.",
-         ["Movimentos desta", "Comandos 2PC", "Diario do coordenador"], saldos_extra),
-        (2, "Figura 7. Saldo insuficiente e validações (cenário 2).", ["Validacoes"], saldos_extra),
-        (3, "Figura 8. Dez transferências concorrentes sobre a mesma conta (cenário 3).", ["Resultado de cada pedido"], saldos_extra),
-        (4, "Figura 9. Idempotência (cenário 4).", ["Pedidos simultaneos"], saldos_extra),
-        (5, "Figura 10. Nó Europa em baixo antes da preparação e queda do nó América durante a preparação (cenário 5).",
-         ["(a) Resposta", "(b) pg_prepared_xacts durante", "(b) Diario do coordenador"], saldos_extra),
-        (6, "Figura 11. Queda do nó América e falha de rede durante a confirmação, e recuperação (cenário 6).",
-         ["Estado no coordenador", "pg_prepared_xacts no America", "Diario do coordenador", "(b) Diario do coordenador"],
-         saldos_extra),
-        (7, "Figura 12. Queda do coordenador com transacções pendentes (cenário 7).",
-         ["(a) Estado com o coordenador", "(a) Linha bloqueada", "(a) Diario", "(b) Diario"], saldos_extra),
-        (8, "Figura 13. Queda da api-1 e failover para a api-2 (cenário 8).", ["Mensagens do cliente"], saldos_extra),
-        (9, "Figura 14. Tokens inválidos e acesso sem autorização (cenário 9).", ["Pedidos a GET", "Autorizacao"], None),
-        (10, "Figura 15. Ordem com o montante adulterado (cenário 10).", ["Representacao canonica"], saldos_extra),
-        (11, "Figura 16. Python ↔ Java: validação do XML e indisponibilidade (cenário 11).", ["Validacao no Java", "Log do servico Java"], None),
-        (12, "Figura 17. NFS: escrita pela api-1, leitura pela api-2, auditoria e falha do NFS (cenário 12).",
-         ["Montagens", "Auditoria da transferencia", "Ficheiros de auditoria", "Eventos da transferencia"], None),
-    ]
-    for n, legenda, blocos, extra in figs:
-        evidencia(doc, ev, n, legenda, blocos, extra)
+    for n in range(0, 13):
+        d = ev.get(n)
+        titulo, objectivo, dois = CENARIOS[n]
+        h = H2(f"6.{n + 1} Cenário {n}: {titulo}")
+        h.paragraph_format.page_break_before = True           # cada cenario na sua pagina
+        if d is None:
+            par(doc, f"**Por executar:** `python testes/cenarios.py {n}`.")
+            continue
+        ok = sum(1 for _, o in d["verificacoes"] if o)
+        par(doc, f"**Objectivo.** {objectivo}")
+        par(doc, f"**Resultado:** {'PASSOU' if d['passou'] else 'FALHOU'} ({ok}/{len(d['verificacoes'])} verificações). "
+                 f"Evidência completa em `evidencias/{d['ficheiro']}.md`." + (f" **Dois computadores:** {dois}" if dois else ""))
+        sal = d["dados"].get("saldos")
+        if sal:
+            rot = list(sal)
+            tabela(doc, ["Conta"] + [f"Saldo {r} (EUR)" for r in rot],
+                   [[c] + [f"{sal[r][c] / 100:,.2f}".replace(",", " ") for r in rot] for c in sal[rot[0]]],
+                   [3.0] + [13.6 / len(rot)] * len(rot))
+        captura_real(doc, f"cenario_{n:02d}.png", f"Execução do cenário {n}: {titulo[0].lower() + titulo[1:]}.",
+                     largura=15.6)
+
     if d99:
-        evidencia(doc, ev, 99, "Figura 18. Verificação global: conservação dos fundos e um débito e um crédito por "
-                               "transferência em todo o sistema.", ["Transferencias no registo", "Saldos finais"])
+        h = H2("6.14 Verificação global de consistência")
+        h.paragraph_format.page_break_before = True
+        par(doc, "Depois de cada cenário, o executor confere todo o sistema directamente nas bases de dados: a soma de todos "
+                 "os saldos, a ausência de saldos negativos, que cada transferência CONCLUIDA tem exactamente um DEBITO e um "
+                 "CREDITO, que as ABORTADA não têm movimentos, que não há movimentos sem transferência e que não ficou "
+                 "nenhuma transacção preparada por resolver. As últimas linhas de cada captura mostram esse resultado; "
+                 "o estado final, depois do último cenário, é este:")
+        saldos_finais = json.loads(d99["blocos"].get("Saldos finais", "{}") or "{}")
+        tabela(doc, ["Conta", "Saldo final (EUR)"], [[c, v] for c, v in saldos_finais.items()], [5.0, 5.0])
+        topicos(doc, [("PASSOU: " if o else "FALHOU: ") + v for v, o in d99["verificacoes"]])
 
     # ---------------------------------------------------------------- 7
     H1("7. Requisitos, implementação e validação")

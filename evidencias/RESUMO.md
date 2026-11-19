@@ -1,6 +1,6 @@
 # Resumo das evidencias
 
-Executado em 2026-11-19 02:27:39 (Docker Compose local, um computador). Cada linha indica a data da execucao no ficheiro do cenario.
+Executado em 2026-11-19 03:07:50 (Docker Compose local, um computador). Cada linha indica a data da execucao no ficheiro do cenario.
 
 | # | Cenario | Resultado | Verificacoes | Dois PCs |
 |---|---|---|---|---|

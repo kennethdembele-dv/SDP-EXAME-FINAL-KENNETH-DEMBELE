@@ -29,7 +29,9 @@ def dc(pc, *args, timeout=900):
 
 
 def registar(titulo, texto):
-    print(f"--- {titulo}\n{texto}")
+    print(f"--- {titulo}")                     # no ecra so as primeiras linhas; o ficheiro tem tudo
+    for l in [l for l in texto.splitlines() if l.strip()][:4]:
+        print(f"    {l[:104]}")
     linhas.extend([f"## {titulo}", "", "```", texto, "```", ""])
 
 

@@ -10,3 +10,4 @@ __pycache__/
 docs/relatorio/~$*
 distribuido/enderecos.env
 .construir/
+evidencias/.contexto.json

@@ -3,7 +3,7 @@
   "titulo": "Transferencias concorrentes sobre a mesma conta",
   "passou": true,
   "passos": [
-    "`02:22:59` Lancar 10 pedidos em paralelo (saldo inicial 300.00; cabem 6)"
+    "`03:02:02` Lancar 10 pedidos em paralelo (saldo inicial 300.00; cabem 6)"
   ],
   "verificacoes": [
     [
@@ -48,6 +48,6 @@
     }
   },
   "blocos": {
-    "Resultado de cada pedido (i, HTTP, estado, codigo, instancia, segundos)": "(0, 201, 'CONCLUIDA', None, 'api-1', 7.943)\n(1, 422, 'ABORTADA', 'SALDO_INSUFICIENTE', 'api-2', 8.646)\n(2, 201, 'CONCLUIDA', None, 'api-1', 3.659)\n(3, 201, 'CONCLUIDA', None, 'api-2', 5.41)\n(4, 422, 'ABORTADA', 'SALDO_INSUFICIENTE', 'api-1', 8.699)\n(5, 422, 'ABORTADA', 'SALDO_INSUFICIENTE', 'api-2', 8.705)\n(6, 201, 'CONCLUIDA', None, 'api-1', 2.823)\n(7, 201, 'CONCLUIDA', None, 'api-2', 6.218)\n(8, 201, 'CONCLUIDA', None, 'api-1', 4.529)\n(9, 422, 'ABORTADA', 'SALDO_INSUFICIENTE', 'api-2', 8.705)"
+    "Resultado de cada pedido (i, HTTP, estado, codigo, instancia, segundos)": "(0, 422, 'ABORTADA', 'SALDO_INSUFICIENTE', 'api-1', 8.605)\n(1, 201, 'CONCLUIDA', None, 'api-2', 6.569)\n(2, 422, 'ABORTADA', 'SALDO_INSUFICIENTE', 'api-1', 8.556)\n(3, 201, 'CONCLUIDA', None, 'api-2', 8.062)\n(4, 201, 'CONCLUIDA', None, 'api-1', 3.817)\n(5, 201, 'CONCLUIDA', None, 'api-2', 5.037)\n(6, 201, 'CONCLUIDA', None, 'api-1', 3.101)\n(7, 422, 'ABORTADA', 'SALDO_INSUFICIENTE', 'api-2', 8.598)\n(8, 422, 'ABORTADA', 'SALDO_INSUFICIENTE', 'api-1', 8.532)\n(9, 201, 'CONCLUIDA', None, 'api-2', 5.759)"
   }
 }

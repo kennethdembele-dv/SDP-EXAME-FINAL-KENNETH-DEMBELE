@@ -1,6 +1,6 @@
 # Cenario 5: Falha de um participante antes e durante a preparacao
 
-**Resultado: PASSOU** (9/9 verificacoes, 38.5 s, executado em 2026-11-19 02:23:56)
+**Resultado: PASSOU** (9/9 verificacoes, 39.1 s, executado em 2026-11-19 03:03:15)
 
 **Objectivo:** (a) O no Europa esta em baixo quando chega uma transferencia US-2001 -> EU-1001: o primeiro participante falha, nenhum prepara e a decisao e ABORT. (b) O no America cai depois de o Europa ja ter preparado (PREPARE TRANSACTION): o Europa faz ROLLBACK PREPARED. Nenhum saldo muda.
 
@@ -8,12 +8,12 @@
 
 ## Procedimento executado
 
-1. `02:23:19` (a) docker compose stop db-europa; carlos envia 12.00 de US-2001 para EU-1001
-2. `02:23:25` (a) docker compose start db-europa
-3. `02:23:31` (b) Pausa de laboratorio de 8 s antes de preparar no America
-4. `02:23:33` (b) ana envia 15.00 de EU-1001 para US-2001 (em segundo plano)
-5. `02:23:35` (b) docker compose stop db-america (queda do no America)
-6. `02:23:47` (b) docker compose start db-america
+1. `03:02:38` (a) docker compose stop db-europa; carlos envia 12.00 de US-2001 para EU-1001
+2. `03:02:43` (a) docker compose start db-europa
+3. `03:02:50` (b) Pausa de laboratorio de 8 s antes de preparar no America
+4. `03:02:52` (b) ana envia 15.00 de EU-1001 para US-2001 (em segundo plano)
+5. `03:02:53` (b) docker compose stop db-america (queda do no America)
+6. `03:03:06` (b) docker compose start db-america
 
 ## Saldos (lidos directamente nos nos PostgreSQL)
 
@@ -29,7 +29,7 @@
   "http": 503,
   "instancia": "api-1",
   "corpo": {
-    "id": "fbe6b1e0-c2ed-4ced-a4a0-eaa60f52396b",
+    "id": "d7196ce9-ef0f-4dd0-be18-80d32c2d0b63",
     "estado": "ABORTADA",
     "explicacao": "abortada em todos os participantes: nenhum saldo foi alterado",
     "decisao": "ABORT",
@@ -41,17 +41,17 @@
     "montante_centimos": 1200,
     "moeda": "EUR",
     "utilizador": "carlos",
-    "chave_idempotencia": "c05a-ad69036e-12bc-48cb-a141-702e3b016039",
+    "chave_idempotencia": "c05a-6698f403-c7ba-4b5b-aa33-e726ee39fa36",
     "instancia_api": "api-1",
     "participantes": [
       {
         "no": "america",
-        "gid": "gs-fbe6b1e0-c2ed-4ced-a4a0-eaa60f52396b-america",
+        "gid": "gs-d7196ce9-ef0f-4dd0-be18-80d32c2d0b63-america",
         "estado": "POR_PREPARAR"
       },
       {
         "no": "europa",
-        "gid": "gs-fbe6b1e0-c2ed-4ced-a4a0-eaa60f52396b-europa",
+        "gid": "gs-d7196ce9-ef0f-4dd0-be18-80d32c2d0b63-europa",
         "estado": "NAO_PREPARADO"
       }
     ],
@@ -60,9 +60,9 @@
       "estado": "NAO_APLICAVEL",
       "referencia": null
     },
-    "criada_em": "2026-11-19T00:23:20.515813+00:00",
-    "decidida_em": "2026-11-19T00:23:24.024583+00:00",
-    "concluida_em": "2026-11-19T00:23:24.151432+00:00",
+    "criada_em": "2026-11-19T01:02:39.218471+00:00",
+    "decidida_em": "2026-11-19T01:02:42.706163+00:00",
+    "concluida_em": "2026-11-19T01:02:42.871634+00:00",
     "repetido": false
   }
 }
@@ -73,7 +73,7 @@
 ```
 {
   "europa": [
-    "gs-7acead8d-8a78-47e6-badd-49841a714ecb-europa"
+    "gs-0a912019-fbc7-42b0-b95d-f23c1bd4278c-europa"
   ],
   "america": []
 }
@@ -83,7 +83,7 @@
 
 ```
 {
-  "id": "7acead8d-8a78-47e6-badd-49841a714ecb",
+  "id": "0a912019-fbc7-42b0-b95d-f23c1bd4278c",
   "estado": "ABORTADA",
   "explicacao": "abortada em todos os participantes: nenhum saldo foi alterado",
   "decisao": "ABORT",
@@ -95,17 +95,17 @@
   "montante_centimos": 1500,
   "moeda": "EUR",
   "utilizador": "ana",
-  "chave_idempotencia": "c05-344cfc33-698a-42d9-bfa7-828e5b5cc03e",
+  "chave_idempotencia": "c05-092f024b-47ef-45c6-ad31-e9ea73b80a9f",
   "instancia_api": "api-1",
   "participantes": [
     {
       "no": "america",
-      "gid": "gs-7acead8d-8a78-47e6-badd-49841a714ecb-america",
+      "gid": "gs-0a912019-fbc7-42b0-b95d-f23c1bd4278c-america",
       "estado": "NAO_PREPARADO"
     },
     {
       "no": "europa",
-      "gid": "gs-7acead8d-8a78-47e6-badd-49841a714ecb-europa",
+      "gid": "gs-0a912019-fbc7-42b0-b95d-f23c1bd4278c-europa",
       "estado": "DESFEITO"
     }
   ],
@@ -114,9 +114,9 @@
     "estado": "NAO_APLICAVEL",
     "referencia": null
   },
-  "criada_em": "2026-11-19T00:23:33.916202+00:00",
-  "decidida_em": "2026-11-19T00:23:45.847474+00:00",
-  "concluida_em": "2026-11-19T00:23:46.097347+00:00",
+  "criada_em": "2026-11-19T01:02:52.881597+00:00",
+  "decidida_em": "2026-11-19T01:03:04.780208+00:00",
+  "concluida_em": "2026-11-19T01:03:05.018439+00:00",
   "repetido": false
 }
 ```
@@ -124,13 +124,13 @@
 ## (b) Diario do coordenador
 
 ```
-00:23:33.916  INICIADA                 ordem de api-1: EU-1001 -> US-2001, 1500 centimos
-00:23:34.311  PREPARADO                europa: PREPARE TRANSACTION 'gs-7acead8d-8a78-47e6-badd-49841a714ecb-europa'
-00:23:34.390  PAUSA_LABORATORIO        antes_preparar_america: 8.0 s
-00:23:45.794  SEM_RESPOSTA_PREPARACAO  america: OperationalError (estado NAO_PREPARADO)
-00:23:45.847  DECISAO_ABORT            o no america nao respondeu durante a preparacao
-00:23:46.033  DESFEITO                 europa: ROLLBACK PREPARED 'gs-7acead8d-8a78-47e6-badd-49841a714ecb-europa'
-00:23:46.128  ABORTADA                 decisao aplicada em todos os participantes
+01:02:52.881  INICIADA                 ordem de api-1: EU-1001 -> US-2001, 1500 centimos
+01:02:53.242  PREPARADO                europa: PREPARE TRANSACTION 'gs-0a912019-fbc7-42b0-b95d-f23c1bd4278c-europa'
+01:02:53.315  PAUSA_LABORATORIO        antes_preparar_america: 8.0 s
+01:03:04.710  SEM_RESPOSTA_PREPARACAO  america: OperationalError (estado NAO_PREPARADO)
+01:03:04.780  DECISAO_ABORT            o no america nao respondeu durante a preparacao
+01:03:04.964  DESFEITO                 europa: ROLLBACK PREPARED 'gs-0a912019-fbc7-42b0-b95d-f23c1bd4278c-europa'
+01:03:05.050  ABORTADA                 decisao aplicada em todos os participantes
 ```
 
 ## Verificacoes

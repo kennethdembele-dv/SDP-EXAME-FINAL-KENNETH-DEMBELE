@@ -130,8 +130,18 @@ python testes/ensaio_distribuido.py     # ensaio dos ficheiros de dois PCs num s
 ```
 
 Resultados obtidos (Docker Desktop 4.99, Windows 10): os 13 cenarios e a verificacao global passaram numa
-execucao a partir de um clone limpo ([evidencias/REPRODUCAO_LIMPA.md](evidencias/REPRODUCAO_LIMPA.md)), e o
-ensaio de dois PCs passou nas 9 verificacoes ([evidencias/13_ensaio_dois_pcs.md](evidencias/13_ensaio_dois_pcs.md)).
+execucao a partir de um clone limpo ([evidencias/REPRODUCAO_LIMPA.md](evidencias/REPRODUCAO_LIMPA.md)) e de novo
+na execucao com uma janela por cenario usada para as capturas de ecra do relatorio (os ficheiros actuais de
+`evidencias/`); o ensaio de dois PCs passou nas 9 verificacoes ([evidencias/13_ensaio_dois_pcs.md](evidencias/13_ensaio_dois_pcs.md)).
+
+Relatorio e capturas de ecra (Windows, com Microsoft Edge e Word):
+
+```sh
+python docs/relatorio/capturar_ecra.py cenarios   # uma janela de PowerShell por cenario; fotografa cada janela
+python docs/relatorio/capturar_ecra.py extras     # ambiente, testes, cliente, Swagger no Edge, Docker Desktop
+python docs/relatorio/gerar_relatorio.py          # docs/Relatorio_Tecnico_Global-Scale.docx
+powershell -ExecutionPolicy Bypass -File docs/relatorio/exportar_pdf.ps1   # PDF pelo Word
+```
 
 Os resultados ficam em [evidencias/](evidencias/) (um `.md` e um `.json` por cenario, mais
 `RESUMO.md`). Os cenarios param e arrancam contentores (`docker compose stop/kill/start`) para
