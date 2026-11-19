@@ -1,15 +1,15 @@
 # Cenario 4: Repeticao de um pedido com a mesma chave de idempotencia
 
-**Resultado: PASSOU** (8/8 verificacoes, 13.2 s, executado em 2026-11-19 02:14:12)
+**Resultado: PASSOU** (8/8 verificacoes, 8.9 s, executado em 2026-11-19 02:23:18)
 
 **Objectivo:** O mesmo pedido enviado a api-1 e repetido em api-2 com a mesma Idempotency-Key produz uma so transferencia; a mesma chave com outro montante e recusada.
 
 ## Procedimento executado
 
-1. `02:13:59` POST a api-1 com Idempotency-Key c04-82d4f05d-6847-4228-91cb-d6bd1972abb2
-2. `02:14:01` Repetir o mesmo pedido em api-2 (como faria um cliente depois de um timeout)
-3. `02:14:01` Reutilizar a chave com outro montante (20.00)
-4. `02:14:03` 5 pedidos SIMULTANEOS com a mesma chave c04-paralelo-d8b4904b-0010-4568-8acd-ae0be0a384a4 (api-1 e api-2 alternadas)
+1. `02:23:09` POST a api-1 com Idempotency-Key c04-46dbbfc1-7ee8-461b-88d0-c7f66a5a2fae
+2. `02:23:11` Repetir o mesmo pedido em api-2 (como faria um cliente depois de um timeout)
+3. `02:23:11` Reutilizar a chave com outro montante (20.00)
+4. `02:23:13` 5 pedidos SIMULTANEOS com a mesma chave c04-paralelo-a26a1671-8bca-441d-a79f-a6eff786731a (api-1 e api-2 alternadas)
 
 ## Saldos (lidos directamente nos nos PostgreSQL)
 
@@ -26,7 +26,7 @@
     "http": 201,
     "instancia": "api-1",
     "corpo": {
-      "id": "0512cf4f-5239-4e09-9fe8-e7584a2aced7",
+      "id": "e4677e18-ae43-4c3d-b8b0-18f442f44c83",
       "estado": "CONCLUIDA",
       "explicacao": "confirmada em todos os participantes: um debito e um credito",
       "decisao": "COMMIT",
@@ -38,17 +38,17 @@
       "montante_centimos": 1000,
       "moeda": "EUR",
       "utilizador": "ana",
-      "chave_idempotencia": "c04-82d4f05d-6847-4228-91cb-d6bd1972abb2",
+      "chave_idempotencia": "c04-46dbbfc1-7ee8-461b-88d0-c7f66a5a2fae",
       "instancia_api": "api-1",
       "participantes": [
         {
           "no": "america",
-          "gid": "gs-0512cf4f-5239-4e09-9fe8-e7584a2aced7-america",
+          "gid": "gs-e4677e18-ae43-4c3d-b8b0-18f442f44c83-america",
           "estado": "CONFIRMADO"
         },
         {
           "no": "europa",
-          "gid": "gs-0512cf4f-5239-4e09-9fe8-e7584a2aced7-europa",
+          "gid": "gs-e4677e18-ae43-4c3d-b8b0-18f442f44c83-europa",
           "estado": "CONFIRMADO"
         }
       ],
@@ -57,9 +57,9 @@
         "estado": "POR_ENVIAR",
         "referencia": null
       },
-      "criada_em": "2026-11-19T00:14:00.126656+00:00",
-      "decidida_em": "2026-11-19T00:14:00.620559+00:00",
-      "concluida_em": "2026-11-19T00:14:00.943102+00:00",
+      "criada_em": "2026-11-19T00:23:10.401324+00:00",
+      "decidida_em": "2026-11-19T00:23:10.849233+00:00",
+      "concluida_em": "2026-11-19T00:23:11.213643+00:00",
       "repetido": false
     }
   },
@@ -67,7 +67,7 @@
     "http": 200,
     "instancia": "api-2",
     "corpo": {
-      "id": "0512cf4f-5239-4e09-9fe8-e7584a2aced7",
+      "id": "e4677e18-ae43-4c3d-b8b0-18f442f44c83",
       "estado": "CONCLUIDA",
       "explicacao": "confirmada em todos os participantes: um debito e um credito",
       "decisao": "COMMIT",
@@ -79,17 +79,17 @@
       "montante_centimos": 1000,
       "moeda": "EUR",
       "utilizador": "ana",
-      "chave_idempotencia": "c04-82d4f05d-6847-4228-91cb-d6bd1972abb2",
+      "chave_idempotencia": "c04-46dbbfc1-7ee8-461b-88d0-c7f66a5a2fae",
       "instancia_api": "api-1",
       "participantes": [
         {
           "no": "america",
-          "gid": "gs-0512cf4f-5239-4e09-9fe8-e7584a2aced7-america",
+          "gid": "gs-e4677e18-ae43-4c3d-b8b0-18f442f44c83-america",
           "estado": "CONFIRMADO"
         },
         {
           "no": "europa",
-          "gid": "gs-0512cf4f-5239-4e09-9fe8-e7584a2aced7-europa",
+          "gid": "gs-e4677e18-ae43-4c3d-b8b0-18f442f44c83-europa",
           "estado": "CONFIRMADO"
         }
       ],
@@ -98,9 +98,9 @@
         "estado": "CONFIRMADA",
         "referencia": "BP-000008"
       },
-      "criada_em": "2026-11-19T00:14:00.126656+00:00",
-      "decidida_em": "2026-11-19T00:14:00.620559+00:00",
-      "concluida_em": "2026-11-19T00:14:00.943102+00:00",
+      "criada_em": "2026-11-19T00:23:10.401324+00:00",
+      "decidida_em": "2026-11-19T00:23:10.849233+00:00",
+      "concluida_em": "2026-11-19T00:23:11.213643+00:00",
       "repetido": true
     }
   },
@@ -117,11 +117,11 @@
 ## Pedidos simultaneos com a mesma chave (HTTP, id, estado)
 
 ```
-(202, 'e0c58742-937e-481b-8f79-497ba59bc8b2', 'INICIADA')
-(202, 'e0c58742-937e-481b-8f79-497ba59bc8b2', 'INICIADA')
-(202, 'e0c58742-937e-481b-8f79-497ba59bc8b2', 'INICIADA')
-(201, 'e0c58742-937e-481b-8f79-497ba59bc8b2', 'CONCLUIDA')
-(202, 'e0c58742-937e-481b-8f79-497ba59bc8b2', 'INICIADA')
+(202, '93397ad8-a5c9-4a81-a5b1-ea96f6232959', 'INICIADA')
+(201, '93397ad8-a5c9-4a81-a5b1-ea96f6232959', 'CONCLUIDA')
+(202, '93397ad8-a5c9-4a81-a5b1-ea96f6232959', 'INICIADA')
+(202, '93397ad8-a5c9-4a81-a5b1-ea96f6232959', 'INICIADA')
+(202, '93397ad8-a5c9-4a81-a5b1-ea96f6232959', 'INICIADA')
 ```
 
 ## Verificacoes

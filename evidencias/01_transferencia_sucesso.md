@@ -1,6 +1,6 @@
 # Cenario 1: Transferencia bem-sucedida entre Europa e America
 
-**Resultado: PASSOU** (8/8 verificacoes, 7.2 s, executado em 2026-11-19 02:13:41)
+**Resultado: PASSOU** (8/8 verificacoes, 7.6 s, executado em 2026-11-19 02:22:51)
 
 **Objectivo:** Transferir 125.50 EUR de EU-1001 (no Europa) para US-2001 (no America) com 2PC.
 
@@ -8,8 +8,8 @@
 
 ## Procedimento executado
 
-1. `02:13:36` ana autentica-se em https://localhost:8000 e envia POST /api/v1/transferencias a api-1
-2. `02:13:41` Consultar o estado (GET /api/v1/transferencias/{id}) ate o banco parceiro confirmar
+1. `02:22:45` ana autentica-se em https://localhost:8000 e envia POST /api/v1/transferencias a api-1
+2. `02:22:50` Consultar o estado (GET /api/v1/transferencias/{id}) ate o banco parceiro confirmar
 
 ## Saldos (lidos directamente nos nos PostgreSQL)
 
@@ -22,7 +22,7 @@
 
 ```
 {
-  "id": "05948f69-7ede-4341-82e2-bfd2846bd6de",
+  "id": "912affad-a763-43d3-b17f-4f673c79e971",
   "estado": "CONCLUIDA",
   "explicacao": "confirmada em todos os participantes: um debito e um credito",
   "decisao": "COMMIT",
@@ -34,17 +34,17 @@
   "montante_centimos": 12550,
   "moeda": "EUR",
   "utilizador": "ana",
-  "chave_idempotencia": "c01-faff139f-6174-42cd-b070-55b5ae14398f",
+  "chave_idempotencia": "c01-321c189d-c4d9-417f-9f51-72843a8bb904",
   "instancia_api": "api-1",
   "participantes": [
     {
       "no": "america",
-      "gid": "gs-05948f69-7ede-4341-82e2-bfd2846bd6de-america",
+      "gid": "gs-912affad-a763-43d3-b17f-4f673c79e971-america",
       "estado": "CONFIRMADO"
     },
     {
       "no": "europa",
-      "gid": "gs-05948f69-7ede-4341-82e2-bfd2846bd6de-europa",
+      "gid": "gs-912affad-a763-43d3-b17f-4f673c79e971-europa",
       "estado": "CONFIRMADO"
     }
   ],
@@ -53,9 +53,9 @@
     "estado": "POR_ENVIAR",
     "referencia": null
   },
-  "criada_em": "2026-11-19T00:13:36.214130+00:00",
-  "decidida_em": "2026-11-19T00:13:36.634115+00:00",
-  "concluida_em": "2026-11-19T00:13:36.973605+00:00",
+  "criada_em": "2026-11-19T00:22:45.285848+00:00",
+  "decidida_em": "2026-11-19T00:22:45.804557+00:00",
+  "concluida_em": "2026-11-19T00:22:46.244580+00:00",
   "repetido": false
 }
 ```
@@ -70,30 +70,30 @@
 ## Diario do coordenador (tabela eventos)
 
 ```
-00:13:36.214  INICIADA                 ordem de api-1: EU-1001 -> US-2001, 12550 centimos
-00:13:36.410  PREPARADO                europa: PREPARE TRANSACTION 'gs-05948f69-7ede-4341-82e2-bfd2846bd6de-europa'
-00:13:36.541  PREPARADO                america: PREPARE TRANSACTION 'gs-05948f69-7ede-4341-82e2-bfd2846bd6de-america'
-00:13:36.634  DECISAO_COMMIT           todos os participantes prepararam
-00:13:36.874  CONFIRMADO               america: COMMIT PREPARED 'gs-05948f69-7ede-4341-82e2-bfd2846bd6de-america'
-00:13:36.903  CONFIRMADO               europa: COMMIT PREPARED 'gs-05948f69-7ede-4341-82e2-bfd2846bd6de-europa'
-00:13:37.014  CONCLUIDA                decisao aplicada em todos os participantes
-00:13:38.057  PARCEIRO_CONFIRMOU       referencia BP-000001 (HTTP 201)
+00:22:45.285  INICIADA                 ordem de api-1: EU-1001 -> US-2001, 12550 centimos
+00:22:45.526  PREPARADO                europa: PREPARE TRANSACTION 'gs-912affad-a763-43d3-b17f-4f673c79e971-europa'
+00:22:45.694  PREPARADO                america: PREPARE TRANSACTION 'gs-912affad-a763-43d3-b17f-4f673c79e971-america'
+00:22:45.804  DECISAO_COMMIT           todos os participantes prepararam
+00:22:46.032  CONFIRMADO               america: COMMIT PREPARED 'gs-912affad-a763-43d3-b17f-4f673c79e971-america'
+00:22:46.085  CONFIRMADO               europa: COMMIT PREPARED 'gs-912affad-a763-43d3-b17f-4f673c79e971-europa'
+00:22:46.296  CONCLUIDA                decisao aplicada em todos os participantes
+00:22:47.436  PARCEIRO_CONFIRMOU       referencia BP-000001 (HTTP 201)
 ```
 
 ## Comandos 2PC nos logs dos participantes PostgreSQL
 
 ```
-statement: PREPARE TRANSACTION 'gs-05948f69-7ede-4341-82e2-bfd2846bd6de-europa'
-statement: COMMIT PREPARED 'gs-05948f69-7ede-4341-82e2-bfd2846bd6de-europa'
-statement: PREPARE TRANSACTION 'gs-05948f69-7ede-4341-82e2-bfd2846bd6de-america'
-statement: COMMIT PREPARED 'gs-05948f69-7ede-4341-82e2-bfd2846bd6de-america'
+statement: PREPARE TRANSACTION 'gs-912affad-a763-43d3-b17f-4f673c79e971-europa'
+statement: COMMIT PREPARED 'gs-912affad-a763-43d3-b17f-4f673c79e971-europa'
+statement: PREPARE TRANSACTION 'gs-912affad-a763-43d3-b17f-4f673c79e971-america'
+statement: COMMIT PREPARED 'gs-912affad-a763-43d3-b17f-4f673c79e971-america'
 ```
 
 ## Estado final da transferencia
 
 ```
 {
-  "id": "05948f69-7ede-4341-82e2-bfd2846bd6de",
+  "id": "912affad-a763-43d3-b17f-4f673c79e971",
   "estado": "CONCLUIDA",
   "explicacao": "confirmada em todos os participantes: um debito e um credito",
   "decisao": "COMMIT",
@@ -105,17 +105,17 @@ statement: COMMIT PREPARED 'gs-05948f69-7ede-4341-82e2-bfd2846bd6de-america'
   "montante_centimos": 12550,
   "moeda": "EUR",
   "utilizador": "ana",
-  "chave_idempotencia": "c01-faff139f-6174-42cd-b070-55b5ae14398f",
+  "chave_idempotencia": "c01-321c189d-c4d9-417f-9f51-72843a8bb904",
   "instancia_api": "api-1",
   "participantes": [
     {
       "no": "america",
-      "gid": "gs-05948f69-7ede-4341-82e2-bfd2846bd6de-america",
+      "gid": "gs-912affad-a763-43d3-b17f-4f673c79e971-america",
       "estado": "CONFIRMADO"
     },
     {
       "no": "europa",
-      "gid": "gs-05948f69-7ede-4341-82e2-bfd2846bd6de-europa",
+      "gid": "gs-912affad-a763-43d3-b17f-4f673c79e971-europa",
       "estado": "CONFIRMADO"
     }
   ],
@@ -124,9 +124,9 @@ statement: COMMIT PREPARED 'gs-05948f69-7ede-4341-82e2-bfd2846bd6de-america'
     "estado": "CONFIRMADA",
     "referencia": "BP-000001"
   },
-  "criada_em": "2026-11-19T00:13:36.214130+00:00",
-  "decidida_em": "2026-11-19T00:13:36.634115+00:00",
-  "concluida_em": "2026-11-19T00:13:36.973605+00:00",
+  "criada_em": "2026-11-19T00:22:45.285848+00:00",
+  "decidida_em": "2026-11-19T00:22:45.804557+00:00",
+  "concluida_em": "2026-11-19T00:22:46.244580+00:00",
   "repetido": false
 }
 ```

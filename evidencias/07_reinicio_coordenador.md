@@ -1,19 +1,19 @@
 # Cenario 7: Reinicio do coordenador com transaccoes pendentes
 
-**Resultado: PASSOU** (8/8 verificacoes, 33.0 s, executado em 2026-11-19 02:16:49)
+**Resultado: PASSOU** (8/8 verificacoes, 32.8 s, executado em 2026-11-19 02:25:53)
 
 **Objectivo:** (a) O coordenador cai depois de gravar COMMIT: ao reiniciar conclui o COMMIT nos dois nos. (b) O coordenador cai depois de preparar mas antes de decidir: ao reiniciar faz ABORT presumido.
 
 ## Procedimento executado
 
-1. `02:16:17` (a) Pausa de 20 s depois de gravar a decisao; ana envia 30.00 EU-1002 -> US-2002
-2. `02:16:21` docker compose kill coordenador (queda abrupta, sem terminar o pedido)
-3. `02:16:23` (a) Bloqueio do 2PC: tentar alterar EU-1002 directamente no Europa com lock_timeout de 2 s
-4. `02:16:26` (a) docker compose start coordenador -> recuperacao de arranque
-5. `02:16:33` (a) o cliente pergunta o resultado pela chave: GET /api/v1/transferencias?chave=...
-6. `02:16:33` (b) Pausa de 20 s depois de preparar (antes da decisao); ana envia 40.00 EU-1001 -> US-2001
-7. `02:16:37` docker compose kill coordenador
-8. `02:16:39` docker compose start coordenador -> abort presumido
+1. `02:25:21` (a) Pausa de 20 s depois de gravar a decisao; ana envia 30.00 EU-1002 -> US-2002
+2. `02:25:25` docker compose kill coordenador (queda abrupta, sem terminar o pedido)
+3. `02:25:28` (a) Bloqueio do 2PC: tentar alterar EU-1002 directamente no Europa com lock_timeout de 2 s
+4. `02:25:30` (a) docker compose start coordenador -> recuperacao de arranque
+5. `02:25:38` (a) o cliente pergunta o resultado pela chave: GET /api/v1/transferencias?chave=...
+6. `02:25:38` (b) Pausa de 20 s depois de preparar (antes da decisao); ana envia 40.00 EU-1001 -> US-2001
+7. `02:25:41` docker compose kill coordenador
+8. `02:25:43` docker compose start coordenador -> abort presumido
 
 ## Saldos (lidos directamente nos nos PostgreSQL)
 
@@ -52,10 +52,10 @@
   },
   "pg_prepared_xacts": {
     "europa": [
-      "gs-75ad0527-36aa-4bff-8fed-2999acc15670-europa"
+      "gs-ac0a9010-c97e-49f2-bb6d-c5d99a3d52c9-europa"
     ],
     "america": [
-      "gs-75ad0527-36aa-4bff-8fed-2999acc15670-america"
+      "gs-ac0a9010-c97e-49f2-bb6d-c5d99a3d52c9-america"
     ]
   }
 }
@@ -71,16 +71,16 @@ CONTEXT:  while updating tuple (0,13) in relation "contas"
 ## (a) Diario do coordenador
 
 ```
-00:16:19.937  INICIADA                 ordem de api-1: EU-1002 -> US-2002, 3000 centimos
-00:16:20.243  PREPARADO                europa: PREPARE TRANSACTION 'gs-75ad0527-36aa-4bff-8fed-2999acc15670-europa'
-00:16:20.406  PREPARADO                america: PREPARE TRANSACTION 'gs-75ad0527-36aa-4bff-8fed-2999acc15670-america'
-00:16:20.586  DECISAO_COMMIT           todos os participantes prepararam
-00:16:20.753  PAUSA_LABORATORIO        apos_decisao: 20.0 s
-00:16:29.120  RECUPERACAO              decisao COMMIT gravada: repetir nos participantes
-00:16:29.396  CONFIRMADO               america: COMMIT PREPARED 'gs-75ad0527-36aa-4bff-8fed-2999acc15670-america'
-00:16:29.431  CONFIRMADO               europa: COMMIT PREPARED 'gs-75ad0527-36aa-4bff-8fed-2999acc15670-europa'
-00:16:29.558  CONCLUIDA                decisao aplicada em todos os participantes
-00:16:29.957  PARCEIRO_CONFIRMOU       referencia BP-000012 (HTTP 201)
+00:25:24.234  INICIADA                 ordem de api-1: EU-1002 -> US-2002, 3000 centimos
+00:25:24.528  PREPARADO                europa: PREPARE TRANSACTION 'gs-ac0a9010-c97e-49f2-bb6d-c5d99a3d52c9-europa'
+00:25:24.681  PREPARADO                america: PREPARE TRANSACTION 'gs-ac0a9010-c97e-49f2-bb6d-c5d99a3d52c9-america'
+00:25:24.779  DECISAO_COMMIT           todos os participantes prepararam
+00:25:24.843  PAUSA_LABORATORIO        apos_decisao: 20.0 s
+00:25:33.387  RECUPERACAO              decisao COMMIT gravada: repetir nos participantes
+00:25:33.602  CONFIRMADO               america: COMMIT PREPARED 'gs-ac0a9010-c97e-49f2-bb6d-c5d99a3d52c9-america'
+00:25:33.626  CONFIRMADO               europa: COMMIT PREPARED 'gs-ac0a9010-c97e-49f2-bb6d-c5d99a3d52c9-europa'
+00:25:33.735  CONCLUIDA                decisao aplicada em todos os participantes
+00:25:34.070  PARCEIRO_CONFIRMOU       referencia BP-000012 (HTTP 201)
 ```
 
 ## (b) Estado com o coordenador em baixo
@@ -99,10 +99,10 @@ CONTEXT:  while updating tuple (0,13) in relation "contas"
   },
   "pg_prepared_xacts": {
     "europa": [
-      "gs-98059bfc-d67c-49f2-87a6-5ccbff74fc28-europa"
+      "gs-6d8fb855-2a39-4c95-9165-999708b4a3f2-europa"
     ],
     "america": [
-      "gs-98059bfc-d67c-49f2-87a6-5ccbff74fc28-america"
+      "gs-6d8fb855-2a39-4c95-9165-999708b4a3f2-america"
     ]
   }
 }
@@ -111,15 +111,15 @@ CONTEXT:  while updating tuple (0,13) in relation "contas"
 ## (b) Diario do coordenador
 
 ```
-00:16:36.244  INICIADA                 ordem de api-1: EU-1001 -> US-2001, 4000 centimos
-00:16:36.606  PREPARADO                europa: PREPARE TRANSACTION 'gs-98059bfc-d67c-49f2-87a6-5ccbff74fc28-europa'
-00:16:36.752  PREPARADO                america: PREPARE TRANSACTION 'gs-98059bfc-d67c-49f2-87a6-5ccbff74fc28-america'
-00:16:36.874  PAUSA_LABORATORIO        apos_preparar: 20.0 s
-00:16:41.976  RECUPERACAO              sem decisao gravada: abort presumido
-00:16:42.028  DECISAO_ABORT            o coordenador reiniciou antes de decidir; nada foi confirmado (abort presumido)
-00:16:42.264  DESFEITO                 europa: ROLLBACK PREPARED 'gs-98059bfc-d67c-49f2-87a6-5ccbff74fc28-europa'
-00:16:42.289  DESFEITO                 america: ROLLBACK PREPARED 'gs-98059bfc-d67c-49f2-87a6-5ccbff74fc28-america'
-00:16:42.407  ABORTADA                 decisao aplicada em todos os participantes
+00:25:40.428  INICIADA                 ordem de api-1: EU-1001 -> US-2001, 4000 centimos
+00:25:40.674  PREPARADO                europa: PREPARE TRANSACTION 'gs-6d8fb855-2a39-4c95-9165-999708b4a3f2-europa'
+00:25:40.844  PREPARADO                america: PREPARE TRANSACTION 'gs-6d8fb855-2a39-4c95-9165-999708b4a3f2-america'
+00:25:40.933  PAUSA_LABORATORIO        apos_preparar: 20.0 s
+00:25:45.931  RECUPERACAO              sem decisao gravada: abort presumido
+00:25:45.989  DECISAO_ABORT            o coordenador reiniciou antes de decidir; nada foi confirmado (abort presumido)
+00:25:46.228  DESFEITO                 america: ROLLBACK PREPARED 'gs-6d8fb855-2a39-4c95-9165-999708b4a3f2-america'
+00:25:46.253  DESFEITO                 europa: ROLLBACK PREPARED 'gs-6d8fb855-2a39-4c95-9165-999708b4a3f2-europa'
+00:25:46.370  ABORTADA                 decisao aplicada em todos os participantes
 ```
 
 ## Verificacoes

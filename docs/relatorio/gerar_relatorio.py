@@ -178,7 +178,7 @@ def evidencia(doc, ev: dict, n: int, legenda: str, blocos: list[str], extra=None
     linhas.append(f"--- verificações: {ok}/{len(d['verificacoes'])} -> {'PASSOU' if d['passou'] else 'FALHOU'}")
     linhas += [f"[x] {v}" if o else f"FALHOU: {v}" for v, o in d["verificacoes"]]
     png = captura(f"ev{n:02d}", f"Terminal - cenário {n}", linhas, maximo=80)
-    figura(doc, png, f"{legenda} Saída real gravada em evidencias/{d['ficheiro']}.md.", largura=16.4)
+    figura(doc, png, f"{legenda} Saída real gravada em evidencias/{d['ficheiro']}.md.", largura=15.2)
 
 
 def saldos_extra(d):
@@ -241,8 +241,8 @@ def conteudo(doc, fig, ev):
              "assinam cada ordem de transferência com RSA-PSS sobre SHA-256. Um banco parceiro escrito em Java troca "
              "mensagens XML com o sistema; a auditoria e os relatórios ficam num sistema de ficheiros distribuído NFSv4. "
              "Todas as ligações usam TLS. O ambiente corre em Docker Compose num computador ou repartido por dois. "
-             "Os doze cenários de teste, incluindo quedas de nós durante cada fase do 2PC, foram executados e as "
-             "evidências reais estão no repositório.")
+             "Os treze cenários de teste, incluindo quedas de nós e uma falha de rede durante cada fase do 2PC, foram "
+             "executados em Docker a partir de uma instalação limpa e as evidências reais estão no repositório.")
     p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(12)
     r = p.add_run("Índice")
@@ -337,6 +337,16 @@ def conteudo(doc, fig, ev):
              "continua válida. A transferência entre EU-1001 e US-2001 passa assim a envolver dois computadores "
              "fisicamente diferentes. As instruções e os comandos para o comprovar na demonstração estão em "
              "`docs/DOIS_COMPUTADORES.md`.")
+    ensaio = EVID / "13_ensaio_dois_pcs.md"
+    if ensaio.exists():
+        texto = ensaio.read_text(encoding="utf8")
+        par(doc, "Os dois ficheiros foram ensaiados num só computador, como dois projectos Docker que só comunicam "
+                 "pelas portas publicadas (`IP_PC_A=IP_PC_B=host-gateway`), com o script `testes/ensaio_distribuido.py`. "
+                 "O resultado está em `evidencias/13_ensaio_dois_pcs.md`: " +
+                 ("todas as verificações passaram" if "**Resultado: PASSOU**" in texto else "há verificações por resolver") +
+                 ". O coordenador do \"PC A\" preparou e confirmou no db-america do \"PC B\" por TLS 1.3, e a api-2 do "
+                 "\"PC B\" montou o NFS do \"PC A\". O ensaio não substitui a prova física com duas máquinas, que se faz "
+                 "com o mesmo procedimento trocando `host-gateway` pelos IP reais.")
     evidencia(doc, ev, 0, "Figura 2. Redes, IP e resolução de nomes dentro da api-1 (cenário 0).",
               ["Redes e enderecos IP", "DNS interno"])
 
@@ -426,7 +436,7 @@ def conteudo(doc, fig, ev):
         await c.execute("BEGIN")
         await c.execute("SET LOCAL lock_timeout = '5s'")
         for tipo, conta, contraparte in sorted(operacoes):       # ordem fixa das contas
-            await _operacao(c, t, tipo, conta, contraparte)      # UPDATE ... WHERE saldo >= m; INSERT movimento
+            await _operacao(c, t, tipo, conta, contraparte)      # UPDATE condicional + INSERT
         await c.execute(sql.SQL("PREPARE TRANSACTION {}").format(sql.Literal(gid)))
 
 async def decidir(tid, decisao):                                  # gravada ANTES de ser comunicada
@@ -543,6 +553,11 @@ async def decidir(tid, decisao):                                  # gravada ANTE
         ["GET /api/v1/parceiro/transferencias/{id}", "Consulta no banco parceiro (Java)"],
         ["POST /api/v1/relatorios/extracto, GET /api/v1/relatorios[/{nome}]", "Extractos CSV no DFS"],
     ], [8.2, 8.4])
+    swagger = EVID / "swagger.png"
+    if swagger.exists():
+        figura(doc, str(swagger), "Figura 4. Documentação OpenAPI da api-1 (Swagger em https://localhost:8001/docs), "
+                                  "captura de ecrã do sistema em execução. A especificação está também em docs/openapi/.",
+               largura=13.5)
 
     H2("4.2 Módulo legado em Java e contrato XML")
     par(doc, "O banco parceiro (`banco-parceiro/src/BancoParceiro.java`) simula o sistema de um banco externo. Está "
@@ -608,7 +623,7 @@ async def decidir(tid, decisao):                                  # gravada ANTE
              "com o certificado, protegendo contra intermediários [6]. O cenário 0 prova as três situações: a ligação "
              "sem TLS é recusada, a ligação ao IP (nome que não está no certificado) é recusada, e as ligações dos "
              "serviços aparecem em `pg_stat_ssl` com TLS 1.3.")
-    evidencia(doc, ev, 0, "Figura 4. TLS nas ligações ao PostgreSQL e à API (cenário 0).",
+    evidencia(doc, ev, 0, "Figura 5. TLS nas ligações ao PostgreSQL e à API (cenário 0).",
               ["Ligacoes ao db-europa", "Ligacoes de teste", "HTTPS na API"])
 
     H2("5.2 Autenticação distribuída com JWT")
@@ -677,29 +692,29 @@ async def decidir(tid, decisao):                                  # gravada ANTE
     tabela(doc, ["#", "Cenário", "Resultado", "Verificações"], resumo, [1.0, 10.6, 2.4, 2.6])
 
     figs = [
-        (1, "Figura 5. Transferência bem-sucedida Europa → América (cenário 1): resposta, movimentos e comandos 2PC nos nós.",
+        (1, "Figura 6. Transferência bem-sucedida Europa → América (cenário 1): resposta, movimentos e comandos 2PC nos nós.",
          ["Movimentos desta", "Comandos 2PC", "Diario do coordenador"], saldos_extra),
-        (2, "Figura 6. Saldo insuficiente e validações (cenário 2).", ["Validacoes"], saldos_extra),
-        (3, "Figura 7. Dez transferências concorrentes sobre a mesma conta (cenário 3).", ["Resultado de cada pedido"], saldos_extra),
-        (4, "Figura 8. Idempotência (cenário 4).", ["Pedidos simultaneos"], saldos_extra),
-        (5, "Figura 9. Nó Europa em baixo antes da preparação e queda do nó América durante a preparação (cenário 5).",
+        (2, "Figura 7. Saldo insuficiente e validações (cenário 2).", ["Validacoes"], saldos_extra),
+        (3, "Figura 8. Dez transferências concorrentes sobre a mesma conta (cenário 3).", ["Resultado de cada pedido"], saldos_extra),
+        (4, "Figura 9. Idempotência (cenário 4).", ["Pedidos simultaneos"], saldos_extra),
+        (5, "Figura 10. Nó Europa em baixo antes da preparação e queda do nó América durante a preparação (cenário 5).",
          ["(a) Resposta", "(b) pg_prepared_xacts durante", "(b) Diario do coordenador"], saldos_extra),
-        (6, "Figura 10. Queda do nó América e falha de rede durante a confirmação, e recuperação (cenário 6).",
+        (6, "Figura 11. Queda do nó América e falha de rede durante a confirmação, e recuperação (cenário 6).",
          ["Estado no coordenador", "pg_prepared_xacts no America", "Diario do coordenador", "(b) Diario do coordenador"],
          saldos_extra),
-        (7, "Figura 11. Queda do coordenador com transacções pendentes (cenário 7).",
+        (7, "Figura 12. Queda do coordenador com transacções pendentes (cenário 7).",
          ["(a) Estado com o coordenador", "(a) Linha bloqueada", "(a) Diario", "(b) Diario"], saldos_extra),
-        (8, "Figura 12. Queda da api-1 e failover para a api-2 (cenário 8).", ["Mensagens do cliente"], saldos_extra),
-        (9, "Figura 13. Tokens inválidos e acesso sem autorização (cenário 9).", ["Pedidos a GET", "Autorizacao"], None),
-        (10, "Figura 14. Ordem com o montante adulterado (cenário 10).", ["Representacao canonica"], saldos_extra),
-        (11, "Figura 15. Python ↔ Java: validação do XML e indisponibilidade (cenário 11).", ["Validacao no Java", "Log do servico Java"], None),
-        (12, "Figura 16. NFS: escrita pela api-1, leitura pela api-2, auditoria e falha do NFS (cenário 12).",
+        (8, "Figura 13. Queda da api-1 e failover para a api-2 (cenário 8).", ["Mensagens do cliente"], saldos_extra),
+        (9, "Figura 14. Tokens inválidos e acesso sem autorização (cenário 9).", ["Pedidos a GET", "Autorizacao"], None),
+        (10, "Figura 15. Ordem com o montante adulterado (cenário 10).", ["Representacao canonica"], saldos_extra),
+        (11, "Figura 16. Python ↔ Java: validação do XML e indisponibilidade (cenário 11).", ["Validacao no Java", "Log do servico Java"], None),
+        (12, "Figura 17. NFS: escrita pela api-1, leitura pela api-2, auditoria e falha do NFS (cenário 12).",
          ["Montagens", "Auditoria da transferencia", "Ficheiros de auditoria", "Eventos da transferencia"], None),
     ]
     for n, legenda, blocos, extra in figs:
         evidencia(doc, ev, n, legenda, blocos, extra)
     if d99:
-        evidencia(doc, ev, 99, "Figura 17. Verificação global: conservação dos fundos e um débito e um crédito por "
+        evidencia(doc, ev, 99, "Figura 18. Verificação global: conservação dos fundos e um débito e um crédito por "
                                "transferência em todo o sistema.", ["Transferencias no registo", "Saldos finais"])
 
     # ---------------------------------------------------------------- 7
@@ -707,7 +722,7 @@ async def decidir(tid, decisao):                                  # gravada ANTE
     tabela(doc, ["Requisito do enunciado [E]", "Ficheiro ou configuração", "Evidência"], [
         ["Limitações do centralizado", "Secção 2.1", "-"],
         ["SO modernos em contentores, IP, portas, DNS", "docker-compose.yml (networks, ipv4_address)", "Cenário 0"],
-        ["Dois computadores", "distribuido/pc-a.yml, pc-b.yml, docs/DOIS_COMPUTADORES.md", "Procedimento manual"],
+        ["Dois computadores", "distribuido/pc-a.yml, pc-b.yml, docs/DOIS_COMPUTADORES.md", "Ensaio num PC (evidência 13); prova física manual"],
         ["DFS (NFS) para auditoria e relatórios", "nfs/, volume dfs, comum/auditoria.py", "Cenário 12"],
         ["Instruções do servidor e clientes NFS", "docs/DOIS_COMPUTADORES.md (Servidor e clientes NFS)", "-"],
         ["Transparência e acesso concorrente no DFS", "Um ficheiro por evento, rename atómico", "Cenário 12"],
@@ -742,8 +757,8 @@ async def decidir(tid, decisao):                                  # gravada ANTE
         "**Uma só moeda (EUR)** e sem conversão cambial.",
         "**Dados em repouso sem cifragem de disco** e NFS sem autenticação forte (secção 5.5).",
         "**Sem balanceador de carga:** o failover é feito pelo cliente; em produção usar-se-ia um balanceador replicado.",
-        "**Dois computadores:** os testes automáticos correm num computador; com dois PCs o procedimento é manual "
-        "(`docs/DOIS_COMPUTADORES.md`).",
+        "**Dois computadores:** a configuração foi ensaiada num só computador (evidência 13); a prova com duas "
+        "máquinas físicas não foi feita e segue o procedimento de `docs/DOIS_COMPUTADORES.md`.",
     ])
 
     H1("9. Conclusão")

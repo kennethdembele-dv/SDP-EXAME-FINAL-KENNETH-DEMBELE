@@ -1,14 +1,14 @@
 # Cenario 9: Token invalido ou expirado e acesso sem autorizacao
 
-**Resultado: PASSOU** (13/13 verificacoes, 14.5 s, executado em 2026-11-19 02:17:27)
+**Resultado: PASSOU** (13/13 verificacoes, 14.1 s, executado em 2026-11-19 02:26:31)
 
 **Objectivo:** As APIs validam assinatura, expiracao, emissor e destinatario do JWT, e so deixam o titular consultar ou movimentar a conta.
 
 ## Procedimento executado
 
-1. `02:17:14` Palavra-passe errada no servico de autenticacao
-2. `02:17:14` bruno, com token valido, tenta usar a conta da ana
-3. `02:17:15` Validacao descentralizada: parar o servico de autenticacao e usar o token ja emitido
+1. `02:26:17` Palavra-passe errada no servico de autenticacao
+2. `02:26:18` bruno, com token valido, tenta usar a conta da ana
+3. `02:26:18` Validacao descentralizada: parar o servico de autenticacao e usar o token ja emitido
 
 ## Pedidos a GET /api/v1/contas/EU-1001/saldo
 

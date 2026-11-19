@@ -123,6 +123,8 @@ NFS_ENDERECO=127.0.0.1
 
 `host-gateway` e o endereco do proprio anfitriao visto de dentro dos contentores, por isso o trafego
 entre os "dois PCs" sai do contentor e volta a entrar pelas portas publicadas, como numa rede real.
+O script `python testes/ensaio_distribuido.py` arranca os dois projectos, faz transferencias nos dois
+sentidos, verifica o 2PC, o TLS e o NFS entre os "dois PCs" e grava `evidencias/13_ensaio_dois_pcs.md`.
 
 ## Servidor e clientes NFS
 

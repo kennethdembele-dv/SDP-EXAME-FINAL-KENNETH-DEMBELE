@@ -1,13 +1,13 @@
 # Cenario 2: Saldo insuficiente e outras validacoes
 
-**Resultado: PASSOU** (9/9 verificacoes, 6.2 s, executado em 2026-11-19 02:13:48)
+**Resultado: PASSOU** (9/9 verificacoes, 6.1 s, executado em 2026-11-19 02:22:57)
 
 **Objectivo:** bruno (EU-1003, 300.00) tenta transferir 1000.00: o no Europa vota NAO e a decisao e ABORT.
 
 ## Procedimento executado
 
-1. `02:13:43` bruno envia 1000.00 de EU-1003 para US-2002
-2. `02:13:46` Outras validacoes: conta inexistente, montante negativo, 3 casas decimais, mesma conta
+1. `02:22:52` bruno envia 1000.00 de EU-1003 para US-2002
+2. `02:22:55` Outras validacoes: conta inexistente, montante negativo, 3 casas decimais, mesma conta
 
 ## Saldos (lidos directamente nos nos PostgreSQL)
 
@@ -20,7 +20,7 @@
 
 ```
 {
-  "id": "e2862d75-3cc2-46e3-963b-78c54ecbb8d0",
+  "id": "283c8a94-d062-43a6-94a3-febd9d67e12e",
   "estado": "ABORTADA",
   "explicacao": "abortada em todos os participantes: nenhum saldo foi alterado",
   "decisao": "ABORT",
@@ -32,17 +32,17 @@
   "montante_centimos": 100000,
   "moeda": "EUR",
   "utilizador": "bruno",
-  "chave_idempotencia": "cli-0eb85405-0abc-49b6-9583-b9db270c53bd",
+  "chave_idempotencia": "cli-fc35708d-e19e-4356-b1f2-433150649f82",
   "instancia_api": "api-1",
   "participantes": [
     {
       "no": "america",
-      "gid": "gs-e2862d75-3cc2-46e3-963b-78c54ecbb8d0-america",
+      "gid": "gs-283c8a94-d062-43a6-94a3-febd9d67e12e-america",
       "estado": "POR_PREPARAR"
     },
     {
       "no": "europa",
-      "gid": "gs-e2862d75-3cc2-46e3-963b-78c54ecbb8d0-europa",
+      "gid": "gs-283c8a94-d062-43a6-94a3-febd9d67e12e-europa",
       "estado": "NAO_PREPARADO"
     }
   ],
@@ -51,9 +51,9 @@
     "estado": "NAO_APLICAVEL",
     "referencia": null
   },
-  "criada_em": "2026-11-19T00:13:43.148555+00:00",
-  "decidida_em": "2026-11-19T00:13:43.354778+00:00",
-  "concluida_em": "2026-11-19T00:13:43.470686+00:00",
+  "criada_em": "2026-11-19T00:22:52.727194+00:00",
+  "decidida_em": "2026-11-19T00:22:52.923466+00:00",
+  "concluida_em": "2026-11-19T00:22:53.074672+00:00",
   "repetido": false
 }
 ```
@@ -61,10 +61,10 @@
 ## Diario do coordenador
 
 ```
-00:13:43.148  INICIADA                 ordem de api-1: EU-1003 -> US-2002, 100000 centimos
-00:13:43.301  VOTO_NAO                 europa: SALDO_INSUFICIENTE (saldo insuficiente em EU-1003)
-00:13:43.354  DECISAO_ABORT            saldo insuficiente em EU-1003
-00:13:43.507  ABORTADA                 decisao aplicada em todos os participantes
+00:22:52.727  INICIADA                 ordem de api-1: EU-1003 -> US-2002, 100000 centimos
+00:22:52.875  VOTO_NAO                 europa: SALDO_INSUFICIENTE (saldo insuficiente em EU-1003)
+00:22:52.923  DECISAO_ABORT            saldo insuficiente em EU-1003
+00:22:53.115  ABORTADA                 decisao aplicada em todos os participantes
 ```
 
 ## Validacoes

@@ -47,6 +47,7 @@ Diagrama detalhado, redes e modelo de dados: [docs/ARQUITECTURA.md](docs/ARQUITE
 ## Requisitos
 
 - Docker Desktop (Windows) ou Docker Engine (Linux) com Docker Compose v2.20 ou mais recente.
+  Testado com Docker Desktop 4.99 (backend Hyper-V, VM com 2 GB e 2 CPUs), Docker 29.9.3 e Compose v5.7.0.
 - Python 3.12 no anfitriao, para gerar os certificados e correr os testes:
   `pip install cryptography==50.0.2 httpx==0.28.1 PyJWT==2.15.1 pytest==9.2.0`
 - Cerca de 1,5 GB de RAM livre para os contentores (todos tem limite de memoria).
@@ -125,7 +126,12 @@ que falta aplica-la num no que nao respondeu; a recuperacao conclui-a sozinha.
 python -m pytest testes/unitarios -q    # sem Docker: dinheiro, assinaturas, JWT, scrypt, XML (30 testes)
 python testes/cenarios.py               # com o sistema a correr: cenarios 0 a 12 com evidencias
 python testes/cenarios.py 6 7           # so alguns cenarios
+python testes/ensaio_distribuido.py     # ensaio dos ficheiros de dois PCs num so PC (ver docs/DOIS_COMPUTADORES.md)
 ```
+
+Resultados obtidos (Docker Desktop 4.99, Windows 10): os 13 cenarios e a verificacao global passaram numa
+execucao a partir de um clone limpo ([evidencias/REPRODUCAO_LIMPA.md](evidencias/REPRODUCAO_LIMPA.md)), e o
+ensaio de dois PCs passou nas 9 verificacoes ([evidencias/13_ensaio_dois_pcs.md](evidencias/13_ensaio_dois_pcs.md)).
 
 Os resultados ficam em [evidencias/](evidencias/) (um `.md` e um `.json` por cenario, mais
 `RESUMO.md`). Os cenarios param e arrancam contentores (`docker compose stop/kill/start`) para
@@ -195,6 +201,8 @@ distribuem os servicos por dois PCs. Instrucoes completas: [docs/DOIS_COMPUTADOR
 
 | Sintoma | Solucao |
 |---|---|
+| Docker Desktop: `Not enough memory to start the virtual machine` | Com o backend Hyper-V a VM reserva a memoria toda no arranque. Fechar programas (navegador) e baixar a memoria em Settings → Resources (2 GB chegam; foi o valor usado nos testes) |
+| `invalid mount config` / ficheiros de `bd/` ou `segredos/` nao encontrados | Com o backend Hyper-V, acrescentar a pasta do projecto em Settings → Resources → File sharing (com WSL 2 nao e preciso) |
 | `corra python seguranca/gerar_materiais.py` ao arrancar | Falta o `.env`: gere os materiais |
 | `api-1`/`coordenador` nao arrancam: `mount.nfs: Connection refused` | O NFS ainda nao estava pronto: `docker compose up -d` outra vez |
 | `certificate verify failed` no cliente | Use `--cacert segredos/ca.crt` (ou instale a CA); use `localhost` e nao o IP |

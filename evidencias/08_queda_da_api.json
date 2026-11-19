@@ -3,9 +3,9 @@
   "titulo": "Queda de uma instancia da API e utilizacao da outra",
   "passou": true,
   "passos": [
-    "`02:16:50` Com as duas instancias activas, respondeu api-1",
-    "`02:16:50` docker compose stop api-1",
-    "`02:17:03` docker compose start api-1"
+    "`02:25:54` Com as duas instancias activas, respondeu api-1",
+    "`02:25:54` docker compose stop api-1",
+    "`02:26:07` docker compose start api-1"
   ],
   "verificacoes": [
     [
@@ -43,6 +43,6 @@
   },
   "blocos": {
     "Mensagens do cliente (failover)": "[failover] https://localhost:8001 nao aceita ligacoes (ConnectError); a tentar a proxima instancia\n[failover] https://localhost:8001 nao aceita ligacoes (ConnectError); a tentar a proxima instancia",
-    "Respostas com api-1 em baixo": "{\n  \"saldo\": {\n    \"http\": 200,\n    \"instancia\": \"api-2\",\n    \"corpo\": {\n      \"conta\": \"EU-1001\",\n      \"saldo\": \"4846.50\",\n      \"saldo_centimos\": 484650,\n      \"moeda\": \"EUR\",\n      \"no\": \"europa\"\n    }\n  },\n  \"transferencia\": {\n    \"http\": 201,\n    \"instancia\": \"api-2\",\n    \"corpo\": {\n      \"id\": \"7d6d42c3-6c02-48df-831a-70688d76239b\",\n      \"estado\": \"CONCLUIDA\",\n      \"explicacao\": \"confirmada em todos os participantes: um debito e um credito\",\n      \"decisao\": \"COMMIT\",\n      \"codigo_erro\": null,\n      \"motivo\": null,\n      \"conta_origem\": \"EU-1001\",\n      \"conta_destino\": \"US-2001\",\n      \"montante\": \"5.00\",\n      \"montante_centimos\": 500,\n      \"moeda\": \"EUR\",\n      \"utilizador\": \"ana\",\n      \"chave_idempotencia\": \"cli-c59a8e2e-908c-4f25-9cc1-f9b32e3f0f37\",\n      \"instancia_api\": \"api-2\",\n      \"participantes\": [\n        {\n          \"no\": \"america\",\n          \"gid\": \"gs-7d6d42c3-6c02-48df-831a-70688d76239b-america\",\n          \"estado\": \"CONFIRMADO\"\n        },\n        {\n          \"no\": \"europa\",\n          \"gid\": \"gs-7d6d42c3-6c02-48df-831a-70688d76239b-europa\",\n          \"estado\": \"CONFIRMADO\"\n        }\n      ],\n      \"pendente_em\": [],\n      \"parceiro\": {\n        \"estado\": \"POR_ENVIAR\",\n        \"referencia\": null\n      },\n      \"criada_em\": \"2026-11-19T00:17:02.748067+00:00\",\n      \"decidida_em\": \"2026-11-19T00:17:03.339170+00:00\",\n      \"concluida_em\": \"2026-11-19T00:17:03.789233+00:00\",\n      \"repetido\": false\n    }\n  }\n}"
+    "Respostas com api-1 em baixo": "{\n  \"saldo\": {\n    \"http\": 200,\n    \"instancia\": \"api-2\",\n    \"corpo\": {\n      \"conta\": \"EU-1001\",\n      \"saldo\": \"4846.50\",\n      \"saldo_centimos\": 484650,\n      \"moeda\": \"EUR\",\n      \"no\": \"europa\"\n    }\n  },\n  \"transferencia\": {\n    \"http\": 201,\n    \"instancia\": \"api-2\",\n    \"corpo\": {\n      \"id\": \"ea670f49-5b30-4695-b2b0-a15326719f0e\",\n      \"estado\": \"CONCLUIDA\",\n      \"explicacao\": \"confirmada em todos os participantes: um debito e um credito\",\n      \"decisao\": \"COMMIT\",\n      \"codigo_erro\": null,\n      \"motivo\": null,\n      \"conta_origem\": \"EU-1001\",\n      \"conta_destino\": \"US-2001\",\n      \"montante\": \"5.00\",\n      \"montante_centimos\": 500,\n      \"moeda\": \"EUR\",\n      \"utilizador\": \"ana\",\n      \"chave_idempotencia\": \"cli-24d5cb2e-8d79-4d37-81eb-33262d58a76f\",\n      \"instancia_api\": \"api-2\",\n      \"participantes\": [\n        {\n          \"no\": \"america\",\n          \"gid\": \"gs-ea670f49-5b30-4695-b2b0-a15326719f0e-america\",\n          \"estado\": \"CONFIRMADO\"\n        },\n        {\n          \"no\": \"europa\",\n          \"gid\": \"gs-ea670f49-5b30-4695-b2b0-a15326719f0e-europa\",\n          \"estado\": \"CONFIRMADO\"\n        }\n      ],\n      \"pendente_em\": [],\n      \"parceiro\": {\n        \"estado\": \"POR_ENVIAR\",\n        \"referencia\": null\n      },\n      \"criada_em\": \"2026-11-19T00:26:06.639342+00:00\",\n      \"decidida_em\": \"2026-11-19T00:26:07.190977+00:00\",\n      \"concluida_em\": \"2026-11-19T00:26:07.554272+00:00\",\n      \"repetido\": false\n    }\n  }\n}"
   }
 }

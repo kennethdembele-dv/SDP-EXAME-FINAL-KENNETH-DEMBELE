@@ -1,31 +1,31 @@
 # Cenario 0: Ambiente, rede, DNS e TLS
 
-**Resultado: PASSOU** (8/8 verificacoes, 8.9 s, executado em 2026-11-19 02:20:13)
+**Resultado: PASSOU** (8/8 verificacoes, 8.3 s, executado em 2026-11-19 02:22:43)
 
 **Objectivo:** Mostrar os nos, as redes, os IP, as portas e provar que as ligacoes a BD usam TLS verificado.
 
 ## Procedimento executado
 
-1. `02:20:04` docker compose ps
-2. `02:20:05` Resolucao DNS a partir do contentor api-1
-3. `02:20:05` Parametros do PostgreSQL relevantes para o 2PC e TLS
-4. `02:20:07` Cada servico abre uma ligacao ao db-europa com o seu DSN (TLS verify-full); o servidor mostra-as
-5. `02:20:11` Tentar ligar ao db-europa sem TLS e com o nome errado no certificado
-6. `02:20:12` HTTPS: pedido sem a CA do laboratorio e pedido com a CA
+1. `02:22:35` docker compose ps
+2. `02:22:36` Resolucao DNS a partir do contentor api-1
+3. `02:22:36` Parametros do PostgreSQL relevantes para o 2PC e TLS
+4. `02:22:37` Cada servico abre uma ligacao ao db-europa com o seu DSN (TLS verify-full); o servidor mostra-as
+5. `02:22:42` Tentar ligar ao db-europa sem TLS e com o nome errado no certificado
+6. `02:22:43` HTTPS: pedido sem a CA do laboratorio e pedido com a CA
 
 ## Contentores (docker compose ps)
 
 ```
-NAME                            STATUS                        PORTS
-global-scale-api-1-1            Up 3 minutes (healthy)        0.0.0.0:8001->8001/tcp, [::]:8001->8001/tcp
-global-scale-api-2-1            Up 6 minutes (healthy)        0.0.0.0:8002->8002/tcp, [::]:8002->8002/tcp
-global-scale-auth-1             Up 2 minutes (healthy)        0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
-global-scale-banco-parceiro-1   Up About a minute (healthy)   127.0.0.1:8200->8200/tcp
-global-scale-coordenador-1      Up 3 minutes (healthy)        127.0.0.1:8100->8100/tcp
-global-scale-db-america-1       Up 4 minutes (healthy)        5432/tcp
-global-scale-db-coordenador-1   Up 7 minutes (healthy)        5432/tcp
-global-scale-db-europa-1        Up 5 minutes (healthy)        5432/tcp
-global-scale-nfs-1              Up About a minute (healthy)   2049/tcp
+NAME                            STATUS                    PORTS
+global-scale-api-1-1            Up 8 seconds (healthy)    0.0.0.0:8001->8001/tcp, [::]:8001->8001/tcp
+global-scale-api-2-1            Up 9 seconds (healthy)    0.0.0.0:8002->8002/tcp, [::]:8002->8002/tcp
+global-scale-auth-1             Up 11 seconds (healthy)   0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
+global-scale-banco-parceiro-1   Up 28 seconds (healthy)   127.0.0.1:8200->8200/tcp
+global-scale-coordenador-1      Up 10 seconds (healthy)   127.0.0.1:8100->8100/tcp
+global-scale-db-america-1       Up 25 seconds (healthy)   5432/tcp
+global-scale-db-coordenador-1   Up 26 seconds (healthy)   5432/tcp
+global-scale-db-europa-1        Up 27 seconds (healthy)   5432/tcp
+global-scale-nfs-1              Up 26 seconds (healthy)   2049/tcp
 ```
 
 ## Redes e enderecos IP (docker network inspect)

@@ -3,9 +3,9 @@
   "titulo": "Token invalido ou expirado e acesso sem autorizacao",
   "passou": true,
   "passos": [
-    "`02:17:14` Palavra-passe errada no servico de autenticacao",
-    "`02:17:14` bruno, com token valido, tenta usar a conta da ana",
-    "`02:17:15` Validacao descentralizada: parar o servico de autenticacao e usar o token ja emitido"
+    "`02:26:17` Palavra-passe errada no servico de autenticacao",
+    "`02:26:18` bruno, com token valido, tenta usar a conta da ana",
+    "`02:26:18` Validacao descentralizada: parar o servico de autenticacao e usar o token ja emitido"
   ],
   "verificacoes": [
     [
