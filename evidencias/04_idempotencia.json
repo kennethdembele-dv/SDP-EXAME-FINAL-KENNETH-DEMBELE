@@ -1,0 +1,61 @@
+{
+  "cenario": 4,
+  "titulo": "Repeticao de um pedido com a mesma chave de idempotencia",
+  "passou": true,
+  "passos": [
+    "`02:13:59` POST a api-1 com Idempotency-Key c04-82d4f05d-6847-4228-91cb-d6bd1972abb2",
+    "`02:14:01` Repetir o mesmo pedido em api-2 (como faria um cliente depois de um timeout)",
+    "`02:14:01` Reutilizar a chave com outro montante (20.00)",
+    "`02:14:03` 5 pedidos SIMULTANEOS com a mesma chave c04-paralelo-d8b4904b-0010-4568-8acd-ae0be0a384a4 (api-1 e api-2 alternadas)"
+  ],
+  "verificacoes": [
+    [
+      "primeiro pedido: HTTP 201 CONCLUIDA",
+      true
+    ],
+    [
+      "repeticao: HTTP 200, mesmo id, repetido=true",
+      true
+    ],
+    [
+      "chave reutilizada com dados diferentes: HTTP 409",
+      true
+    ],
+    [
+      "saldos alterados uma unica vez (10.00)",
+      true
+    ],
+    [
+      "so um debito e um credito",
+      true
+    ],
+    [
+      "todos os pedidos devolvem a mesma transferencia",
+      true
+    ],
+    [
+      "o coordenador tem uma unica transferencia com esta chave",
+      true
+    ],
+    [
+      "um debito e um credito para a transferencia paralela",
+      true
+    ]
+  ],
+  "dados": {
+    "saldos": {
+      "antes": {
+        "EU-1002": 150000,
+        "US-2002": 80000
+      },
+      "depois": {
+        "EU-1002": 149000,
+        "US-2002": 81000
+      }
+    }
+  },
+  "blocos": {
+    "Respostas": "{\n  \"primeiro (api-1)\": {\n    \"http\": 201,\n    \"instancia\": \"api-1\",\n    \"corpo\": {\n      \"id\": \"0512cf4f-5239-4e09-9fe8-e7584a2aced7\",\n      \"estado\": \"CONCLUIDA\",\n      \"explicacao\": \"confirmada em todos os participantes: um debito e um credito\",\n      \"decisao\": \"COMMIT\",\n      \"codigo_erro\": null,\n      \"motivo\": null,\n      \"conta_origem\": \"EU-1002\",\n      \"conta_destino\": \"US-2002\",\n      \"montante\": \"10.00\",\n      \"montante_centimos\": 1000,\n      \"moeda\": \"EUR\",\n      \"utilizador\": \"ana\",\n      \"chave_idempotencia\": \"c04-82d4f05d-6847-4228-91cb-d6bd1972abb2\",\n      \"instancia_api\": \"api-1\",\n      \"participantes\": [\n        {\n          \"no\": \"america\",\n          \"gid\": \"gs-0512cf4f-5239-4e09-9fe8-e7584a2aced7-america\",\n          \"estado\": \"CONFIRMADO\"\n        },\n        {\n          \"no\": \"europa\",\n          \"gid\": \"gs-0512cf4f-5239-4e09-9fe8-e7584a2aced7-europa\",\n          \"estado\": \"CONFIRMADO\"\n        }\n      ],\n      \"pendente_em\": [],\n      \"parceiro\": {\n        \"estado\": \"POR_ENVIAR\",\n        \"referencia\": null\n      },\n      \"criada_em\": \"2026-11-19T00:14:00.126656+00:00\",\n      \"decidida_em\": \"2026-11-19T00:14:00.620559+00:00\",\n      \"concluida_em\": \"2026-11-19T00:14:00.943102+00:00\",\n      \"repetido\": false\n    }\n  },\n  \"repeticao (api-2)\": {\n    \"http\": 200,\n    \"instancia\": \"api-2\",\n    \"corpo\": {\n      \"id\": \"0512cf4f-5239-4e09-9fe8-e7584a2aced7\",\n      \"estado\": \"CONCLUIDA\",\n      \"explicacao\": \"confirmada em todos os participantes: um debito e um credito\",\n      \"decisao\": \"COMMIT\",\n      \"codigo_erro\": null,\n      \"motivo\": null,\n      \"conta_origem\": \"EU-1002\",\n      \"conta_destino\": \"US-2002\",\n      \"montante\": \"10.00\",\n      \"montante_centimos\": 1000,\n      \"moeda\": \"EUR\",\n      \"utilizador\": \"ana\",\n      \"chave_idempotencia\": \"c04-82d4f05d-6847-4228-91cb-d6bd1972abb2\",\n      \"instancia_api\": \"api-1\",\n      \"participantes\": [\n        {\n          \"no\": \"america\",\n          \"gid\": \"gs-0512cf4f-5239-4e09-9fe8-e7584a2aced7-america\",\n          \"estado\": \"CONFIRMADO\"\n        },\n        {\n          \"no\": \"europa\",\n          \"gid\": \"gs-0512cf4f-5239-4e09-9fe8-e7584a2aced7-europa\",\n          \"estado\": \"CONFIRMADO\"\n        }\n      ],\n      \"pendente_em\": [],\n      \"parceiro\": {\n        \"estado\": \"CONFIRMADA\",\n        \"referencia\": \"BP-000008\"\n      },\n      \"criada_em\": \"2026-11-19T00:14:00.126656+00:00\",\n      \"decidida_em\": \"2026-11-19T00:14:00.620559+00:00\",\n      \"concluida_em\": \"2026-11-19T00:14:00.943102+00:00\",\n      \"repetido\": true\n    }\n  },\n  \"chave reutilizada com 20.00\": {\n    \"http\": 409,\n    \"instancia\": \"api-1\",\n    \"corpo\": {\n      \"detail\": \"chave de idempotencia ja usada com dados diferentes\"\n    }\n  }\n}",
+    "Pedidos simultaneos com a mesma chave (HTTP, id, estado)": "(202, 'e0c58742-937e-481b-8f79-497ba59bc8b2', 'INICIADA')\n(202, 'e0c58742-937e-481b-8f79-497ba59bc8b2', 'INICIADA')\n(202, 'e0c58742-937e-481b-8f79-497ba59bc8b2', 'INICIADA')\n(201, 'e0c58742-937e-481b-8f79-497ba59bc8b2', 'CONCLUIDA')\n(202, 'e0c58742-937e-481b-8f79-497ba59bc8b2', 'INICIADA')"
+  }
+}

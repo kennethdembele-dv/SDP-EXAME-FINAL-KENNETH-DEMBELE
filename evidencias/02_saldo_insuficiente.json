@@ -1,0 +1,64 @@
+{
+  "cenario": 2,
+  "titulo": "Saldo insuficiente e outras validacoes",
+  "passou": true,
+  "passos": [
+    "`02:13:43` bruno envia 1000.00 de EU-1003 para US-2002",
+    "`02:13:46` Outras validacoes: conta inexistente, montante negativo, 3 casas decimais, mesma conta"
+  ],
+  "verificacoes": [
+    [
+      "HTTP 422, estado ABORTADA, codigo SALDO_INSUFICIENTE",
+      true
+    ],
+    [
+      "saldos inalterados",
+      true
+    ],
+    [
+      "nenhum movimento registado",
+      true
+    ],
+    [
+      "conta destino inexistente (US-9999): recusado com HTTP 422",
+      true
+    ],
+    [
+      "montante negativo (-5): recusado com HTTP 422",
+      true
+    ],
+    [
+      "tres casas decimais (1.005): recusado com HTTP 422",
+      true
+    ],
+    [
+      "origem igual ao destino: recusado com HTTP 422",
+      true
+    ],
+    [
+      "moeda diferente (USD): recusado com HTTP 422",
+      true
+    ],
+    [
+      "saldos continuam inalterados",
+      true
+    ]
+  ],
+  "dados": {
+    "saldos": {
+      "antes": {
+        "EU-1003": 30000,
+        "US-2002": 80000
+      },
+      "depois": {
+        "EU-1003": 30000,
+        "US-2002": 80000
+      }
+    }
+  },
+  "blocos": {
+    "Resposta (HTTP 422)": "{\n  \"id\": \"e2862d75-3cc2-46e3-963b-78c54ecbb8d0\",\n  \"estado\": \"ABORTADA\",\n  \"explicacao\": \"abortada em todos os participantes: nenhum saldo foi alterado\",\n  \"decisao\": \"ABORT\",\n  \"codigo_erro\": \"SALDO_INSUFICIENTE\",\n  \"motivo\": \"saldo insuficiente em EU-1003\",\n  \"conta_origem\": \"EU-1003\",\n  \"conta_destino\": \"US-2002\",\n  \"montante\": \"1000.00\",\n  \"montante_centimos\": 100000,\n  \"moeda\": \"EUR\",\n  \"utilizador\": \"bruno\",\n  \"chave_idempotencia\": \"cli-0eb85405-0abc-49b6-9583-b9db270c53bd\",\n  \"instancia_api\": \"api-1\",\n  \"participantes\": [\n    {\n      \"no\": \"america\",\n      \"gid\": \"gs-e2862d75-3cc2-46e3-963b-78c54ecbb8d0-america\",\n      \"estado\": \"POR_PREPARAR\"\n    },\n    {\n      \"no\": \"europa\",\n      \"gid\": \"gs-e2862d75-3cc2-46e3-963b-78c54ecbb8d0-europa\",\n      \"estado\": \"NAO_PREPARADO\"\n    }\n  ],\n  \"pendente_em\": [],\n  \"parceiro\": {\n    \"estado\": \"NAO_APLICAVEL\",\n    \"referencia\": null\n  },\n  \"criada_em\": \"2026-11-19T00:13:43.148555+00:00\",\n  \"decidida_em\": \"2026-11-19T00:13:43.354778+00:00\",\n  \"concluida_em\": \"2026-11-19T00:13:43.470686+00:00\",\n  \"repetido\": false\n}",
+    "Diario do coordenador": "00:13:43.148  INICIADA                 ordem de api-1: EU-1003 -> US-2002, 100000 centimos\n00:13:43.301  VOTO_NAO                 europa: SALDO_INSUFICIENTE (saldo insuficiente em EU-1003)\n00:13:43.354  DECISAO_ABORT            saldo insuficiente em EU-1003\n00:13:43.507  ABORTADA                 decisao aplicada em todos os participantes",
+    "Validacoes": "conta destino inexistente (US-9999)    HTTP 422  CONTA_INEXISTENTE\nmontante negativo (-5)                 HTTP 422  o montante tem de ser positivo\ntres casas decimais (1.005)            HTTP 422  o montante tem no maximo 2 casas decimais\norigem igual ao destino                HTTP 422  a conta de origem e a de destino sao a mesma\nmoeda diferente (USD)                  HTTP 422  moeda nao suportada: a demonstracao usa apenas EUR"
+  }
+}

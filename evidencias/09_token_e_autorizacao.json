@@ -1,0 +1,69 @@
+{
+  "cenario": 9,
+  "titulo": "Token invalido ou expirado e acesso sem autorizacao",
+  "passou": true,
+  "passos": [
+    "`02:17:14` Palavra-passe errada no servico de autenticacao",
+    "`02:17:14` bruno, com token valido, tenta usar a conta da ana",
+    "`02:17:15` Validacao descentralizada: parar o servico de autenticacao e usar o token ja emitido"
+  ],
+  "verificacoes": [
+    [
+      "sem token: HTTP 401",
+      true
+    ],
+    [
+      "assinado com outra chave: HTTP 401",
+      true
+    ],
+    [
+      "expirado (chave verdadeira): HTTP 401",
+      true
+    ],
+    [
+      "destinatario errado: HTTP 401",
+      true
+    ],
+    [
+      "emissor errado: HTTP 401",
+      true
+    ],
+    [
+      "algoritmo none: HTTP 401",
+      true
+    ],
+    [
+      "token adulterado (sub=bruno): HTTP 401",
+      true
+    ],
+    [
+      "palavra-passe errada: HTTP 401",
+      true
+    ],
+    [
+      "bruno: consultar saldo de EU-1001 -> recusado (403/404)",
+      true
+    ],
+    [
+      "bruno: historico de EU-1001 -> recusado (403/404)",
+      true
+    ],
+    [
+      "bruno: transferir a partir de EU-1001 -> recusado (403/404)",
+      true
+    ],
+    [
+      "bruno: ver a transferencia da ana -> recusado (403/404)",
+      true
+    ],
+    [
+      "com o emissor em baixo, api-2 continua a aceitar o token valido (HTTP 200)",
+      true
+    ]
+  ],
+  "dados": {},
+  "blocos": {
+    "Pedidos a GET /api/v1/contas/EU-1001/saldo": "sem token                      HTTP 401  falta o token (Authorization: Bearer ...)\nassinado com outra chave       HTTP 401  assinatura do token invalida\nexpirado (chave verdadeira)    HTTP 401  token expirado\ndestinatario errado            HTTP 401  token emitido para outro destinatario\nemissor errado                 HTTP 401  token de um emissor desconhecido\nalgoritmo none                 HTTP 401  token invalido: The specified alg value is not allowed\ntoken adulterado (sub=bruno)   HTTP 401  assinatura do token invalida",
+    "Autorizacao": "consultar saldo de EU-1001       HTTP 403  a conta EU-1001 nao pertence ao utilizador bruno\nhistorico de EU-1001             HTTP 403  a conta EU-1001 nao pertence ao utilizador bruno\ntransferir a partir de EU-1001   HTTP 403  a conta EU-1001 nao pertence ao utilizador bruno\nver a transferencia da ana       HTTP 404  transferencia inexistente"
+  }
+}

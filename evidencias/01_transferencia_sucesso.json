@@ -1,0 +1,62 @@
+{
+  "cenario": 1,
+  "titulo": "Transferencia bem-sucedida entre Europa e America",
+  "passou": true,
+  "passos": [
+    "`02:13:36` ana autentica-se em https://localhost:8000 e envia POST /api/v1/transferencias a api-1",
+    "`02:13:41` Consultar o estado (GET /api/v1/transferencias/{id}) ate o banco parceiro confirmar"
+  ],
+  "verificacoes": [
+    [
+      "HTTP 201 e estado CONCLUIDA",
+      true
+    ],
+    [
+      "EU-1001 debitada em 125.50",
+      true
+    ],
+    [
+      "US-2001 creditada em 125.50",
+      true
+    ],
+    [
+      "total das duas contas conservado",
+      true
+    ],
+    [
+      "exactamente um DEBITO (europa) e um CREDITO (america)",
+      true
+    ],
+    [
+      "os dois participantes executaram PREPARE TRANSACTION e COMMIT PREPARED",
+      true
+    ],
+    [
+      "confirmada pelo banco parceiro (Java) com referencia BP-xxxxxx",
+      true
+    ],
+    [
+      "nenhuma transaccao preparada ficou por resolver",
+      true
+    ]
+  ],
+  "dados": {
+    "saldos": {
+      "antes": {
+        "EU-1001": 500000,
+        "US-2001": 300000
+      },
+      "depois": {
+        "EU-1001": 487450,
+        "US-2001": 312550
+      }
+    }
+  },
+  "blocos": {
+    "Resposta da API (HTTP 201)": "{\n  \"id\": \"05948f69-7ede-4341-82e2-bfd2846bd6de\",\n  \"estado\": \"CONCLUIDA\",\n  \"explicacao\": \"confirmada em todos os participantes: um debito e um credito\",\n  \"decisao\": \"COMMIT\",\n  \"codigo_erro\": null,\n  \"motivo\": null,\n  \"conta_origem\": \"EU-1001\",\n  \"conta_destino\": \"US-2001\",\n  \"montante\": \"125.50\",\n  \"montante_centimos\": 12550,\n  \"moeda\": \"EUR\",\n  \"utilizador\": \"ana\",\n  \"chave_idempotencia\": \"c01-faff139f-6174-42cd-b070-55b5ae14398f\",\n  \"instancia_api\": \"api-1\",\n  \"participantes\": [\n    {\n      \"no\": \"america\",\n      \"gid\": \"gs-05948f69-7ede-4341-82e2-bfd2846bd6de-america\",\n      \"estado\": \"CONFIRMADO\"\n    },\n    {\n      \"no\": \"europa\",\n      \"gid\": \"gs-05948f69-7ede-4341-82e2-bfd2846bd6de-europa\",\n      \"estado\": \"CONFIRMADO\"\n    }\n  ],\n  \"pendente_em\": [],\n  \"parceiro\": {\n    \"estado\": \"POR_ENVIAR\",\n    \"referencia\": null\n  },\n  \"criada_em\": \"2026-11-19T00:13:36.214130+00:00\",\n  \"decidida_em\": \"2026-11-19T00:13:36.634115+00:00\",\n  \"concluida_em\": \"2026-11-19T00:13:36.973605+00:00\",\n  \"repetido\": false\n}",
+    "Movimentos desta transferencia nos dois nos": "('europa', 'DEBITO', 'EU-1001', 12550)\n('america', 'CREDITO', 'US-2001', 12550)",
+    "Diario do coordenador (tabela eventos)": "00:13:36.214  INICIADA                 ordem de api-1: EU-1001 -> US-2001, 12550 centimos\n00:13:36.410  PREPARADO                europa: PREPARE TRANSACTION 'gs-05948f69-7ede-4341-82e2-bfd2846bd6de-europa'\n00:13:36.541  PREPARADO                america: PREPARE TRANSACTION 'gs-05948f69-7ede-4341-82e2-bfd2846bd6de-america'\n00:13:36.634  DECISAO_COMMIT           todos os participantes prepararam\n00:13:36.874  CONFIRMADO               america: COMMIT PREPARED 'gs-05948f69-7ede-4341-82e2-bfd2846bd6de-america'\n00:13:36.903  CONFIRMADO               europa: COMMIT PREPARED 'gs-05948f69-7ede-4341-82e2-bfd2846bd6de-europa'\n00:13:37.014  CONCLUIDA                decisao aplicada em todos os participantes\n00:13:38.057  PARCEIRO_CONFIRMOU       referencia BP-000001 (HTTP 201)",
+    "Comandos 2PC nos logs dos participantes PostgreSQL": "statement: PREPARE TRANSACTION 'gs-05948f69-7ede-4341-82e2-bfd2846bd6de-europa'\nstatement: COMMIT PREPARED 'gs-05948f69-7ede-4341-82e2-bfd2846bd6de-europa'\nstatement: PREPARE TRANSACTION 'gs-05948f69-7ede-4341-82e2-bfd2846bd6de-america'\nstatement: COMMIT PREPARED 'gs-05948f69-7ede-4341-82e2-bfd2846bd6de-america'",
+    "Estado final da transferencia": "{\n  \"id\": \"05948f69-7ede-4341-82e2-bfd2846bd6de\",\n  \"estado\": \"CONCLUIDA\",\n  \"explicacao\": \"confirmada em todos os participantes: um debito e um credito\",\n  \"decisao\": \"COMMIT\",\n  \"codigo_erro\": null,\n  \"motivo\": null,\n  \"conta_origem\": \"EU-1001\",\n  \"conta_destino\": \"US-2001\",\n  \"montante\": \"125.50\",\n  \"montante_centimos\": 12550,\n  \"moeda\": \"EUR\",\n  \"utilizador\": \"ana\",\n  \"chave_idempotencia\": \"c01-faff139f-6174-42cd-b070-55b5ae14398f\",\n  \"instancia_api\": \"api-1\",\n  \"participantes\": [\n    {\n      \"no\": \"america\",\n      \"gid\": \"gs-05948f69-7ede-4341-82e2-bfd2846bd6de-america\",\n      \"estado\": \"CONFIRMADO\"\n    },\n    {\n      \"no\": \"europa\",\n      \"gid\": \"gs-05948f69-7ede-4341-82e2-bfd2846bd6de-europa\",\n      \"estado\": \"CONFIRMADO\"\n    }\n  ],\n  \"pendente_em\": [],\n  \"parceiro\": {\n    \"estado\": \"CONFIRMADA\",\n    \"referencia\": \"BP-000001\"\n  },\n  \"criada_em\": \"2026-11-19T00:13:36.214130+00:00\",\n  \"decidida_em\": \"2026-11-19T00:13:36.634115+00:00\",\n  \"concluida_em\": \"2026-11-19T00:13:36.973605+00:00\",\n  \"repetido\": false\n}"
+  }
+}

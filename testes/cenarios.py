@@ -272,12 +272,25 @@ def c00_ambiente():
     ev.bloco("Configuracao dos nos PostgreSQL", "\n".join(par))
     ev.verificar("max_prepared_transactions > 0 e ssl=on nos tres nos", all("ssl=on" in l and "=0 " not in l for l in par))
 
-    tls = psql("db-europa", 5433, "SELECT a.usename, a.application_name, s.ssl, s.version, s.cipher "
+    # Os servicos abrem uma ligacao por operacao (pool nulo), por isso abre-se uma ligacao de 6 s a
+    # partir de cada servico, com o DSN do proprio servico (comum/bd.py), e observa-se do lado do servidor.
+    ev.passo("Cada servico abre uma ligacao ao db-europa com o seu DSN (TLS verify-full); o servidor mostra-as")
+    for servico, papel, senha in (("auth", "gs_leitura", "PG_SENHA_LEITURA"), ("api-1", "gs_leitura", "PG_SENHA_LEITURA"),
+                                  ("api-2", "gs_leitura", "PG_SENHA_LEITURA"),
+                                  ("coordenador", "gs_transaccoes", "PG_SENHA_TRANSACCOES")):
+        compose("exec", "-d", servico, "python", "-c",
+                f"import os, psycopg; from comum import bd; "
+                f"c = psycopg.connect(bd.dsn_no('europa', '{papel}', os.environ['{senha}'])); "
+                f"c.execute('SELECT pg_sleep(6)')")
+    time.sleep(2.5)
+    tls = psql("db-europa", 5433, "SELECT a.application_name, a.usename, host(a.client_addr), s.ssl, s.version, s.cipher "
                                    "FROM pg_stat_ssl s JOIN pg_stat_activity a USING (pid) "
-                                   "WHERE a.client_addr IS NOT NULL ORDER BY 2")
-    ev.bloco("Ligacoes ao db-europa vistas pelo servidor (pg_stat_ssl)",
+                                   "WHERE a.client_addr IS NOT NULL ORDER BY 1")
+    ev.bloco("Ligacoes ao db-europa vistas pelo servidor (pg_stat_ssl): servico | papel | IP | ssl | versao | cifra",
              "\n".join(" | ".join(l) for l in tls))
-    ev.verificar("todas as ligacoes de rede ao db-europa usam TLS", tls and all(l[2] == "t" for l in tls))
+    ev.verificar("as ligacoes de auth, api-1, api-2 e coordenador usam TLS 1.3",
+                 {l[0] for l in tls} >= {"auth", "api-1", "api-2", "coordenador"}
+                 and all(l[3] == "t" and l[4] == "TLSv1.3" for l in tls))
 
     ev.passo("Tentar ligar ao db-europa sem TLS e com o nome errado no certificado")
     teste = compose("exec", "-T", "api-1", "python", "-c", """
@@ -287,7 +300,8 @@ for nome, dsn in [('sem TLS', f'host=db-europa port=5433 dbname=globalscale user
                   ('IP em vez do nome', f'host=172.30.2.10 port=5433 dbname=globalscale user=gs_leitura password={s} sslmode=verify-full sslrootcert=/run/secrets/ca.crt'),
                   ('correcto', f'host=db-europa port=5433 dbname=globalscale user=gs_leitura password={s} sslmode=verify-full sslrootcert=/run/secrets/ca.crt')]:
     try:
-        c = psycopg.connect(dsn, connect_timeout=3); print(nome, '-> ligou, TLS', c.info.pgconn.ssl_attribute('protocol')); c.close()
+        c = psycopg.connect(dsn, connect_timeout=3)
+        print(nome, '-> ligou, TLS', c.execute('SELECT version FROM pg_stat_ssl WHERE pid = pg_backend_pid()').fetchone()[0]); c.close()
     except Exception as e: print(nome, '-> RECUSADO:', str(e).strip().splitlines()[-1][:150])
 """)
     ev.bloco("Ligacoes de teste a partir de api-1", teste)
@@ -1020,13 +1034,15 @@ def main():
     final = invariantes(total_inicial)
     final.gravar()
     linhas = ["# Resumo das evidencias", "", f"Executado em {time.strftime('%Y-%m-%d %H:%M:%S')} "
-              f"(Docker Compose local, um computador).", "",
+              f"(Docker Compose local, um computador). Cada linha indica a data da execucao no ficheiro do cenario.", "",
               "| # | Cenario | Resultado | Verificacoes | Dois PCs |", "|---|---|---|---|---|"]
-    for ev in resultados + [final]:
-        ok = sum(1 for _, o in ev.verificacoes if o)
-        linhas.append(f"| {ev.numero} | [{ev.titulo}]({ev.numero:02d}_{ev.nome}.md) | "
-                      f"{'PASSOU' if ev.passou else 'FALHOU'} | {ok}/{len(ev.verificacoes)} | "
-                      f"{'sim (ver nota)' if ev.dois_pcs else ''} |")
+    gravadas = sorted((json.loads(f.read_text(encoding="utf-8")) | {"ficheiro": f.stem} for f in EVID.glob("*.json")),
+                      key=lambda d: d["cenario"])
+    for d in gravadas:                   # todas as evidencias gravadas, incluindo as de execucoes anteriores
+        ok = sum(1 for _, o in d["verificacoes"] if o)
+        dois = any(p.startswith("**Dois") for p in (EVID / f"{d['ficheiro']}.md").read_text(encoding="utf-8").splitlines())
+        linhas.append(f"| {d['cenario']} | [{d['titulo']}]({d['ficheiro']}.md) | {'PASSOU' if d['passou'] else 'FALHOU'} | "
+                      f"{ok}/{len(d['verificacoes'])} | {'sim (ver nota)' if dois else ''} |")
     (EVID / "RESUMO.md").write_text("\n".join(linhas) + "\n", encoding="utf-8")
     print("\n" + "\n".join(linhas))
     sys.exit(0 if all(ev.passou for ev in resultados + [final]) else 1)

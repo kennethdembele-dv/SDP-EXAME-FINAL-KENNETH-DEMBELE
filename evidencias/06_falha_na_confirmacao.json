@@ -1,0 +1,89 @@
+{
+  "cenario": 6,
+  "titulo": "Falha durante a confirmacao e posterior recuperacao",
+  "passou": true,
+  "passos": [
+    "`02:14:52` (a) Pausa de laboratorio de 10 s antes do COMMIT PREPARED no America",
+    "`02:14:54` (a) ana envia 20.00 de EU-1001 para US-2001 (em segundo plano)",
+    "`02:14:59` docker compose stop db-america (o America tem a transaccao preparada)",
+    "`02:15:09` docker compose start db-america (a recuperacao tem uma pausa de 25 s para se observar o no)",
+    "`02:15:16` Esperar que o ciclo de recuperacao do coordenador repita o COMMIT PREPARED",
+    "`02:15:40` (b) Pausa de 6 s antes do COMMIT no America; ana envia 8.00 de EU-1001 para US-2001",
+    "`02:15:43` (b) docker compose pause db-america (o no deixa de responder, sem perder ligacao de rede nem dados)",
+    "`02:16:03` (b) docker compose unpause db-america (a rede volta)"
+  ],
+  "verificacoes": [
+    [
+      "HTTP 202, estado COMMIT_DECIDIDO, pendente no america",
+      true
+    ],
+    [
+      "Europa ja debitou (a decisao COMMIT e definitiva)",
+      true
+    ],
+    [
+      "a transaccao preparada sobreviveu ao reinicio do PostgreSQL",
+      true
+    ],
+    [
+      "(a) estado final CONCLUIDA",
+      true
+    ],
+    [
+      "(a) US-2001 creditada em 20.00",
+      true
+    ],
+    [
+      "(a) total conservado",
+      true
+    ],
+    [
+      "(a) um debito e um credito",
+      true
+    ],
+    [
+      "(b) HTTP 202 COMMIT_DECIDIDO, pendente no america (o timeout nao mudou a decisao)",
+      true
+    ],
+    [
+      "(b) durante a falha de rede a transferencia continua COMMIT_DECIDIDO",
+      true
+    ],
+    [
+      "(b) o diario regista o COMMIT sem resposta (timeout) e a repeticao bem-sucedida",
+      true
+    ],
+    [
+      "(b) um debito e um credito e total conservado",
+      true
+    ],
+    [
+      "nenhuma transaccao preparada ficou por resolver",
+      true
+    ]
+  ],
+  "dados": {
+    "saldos": {
+      "antes": {
+        "EU-1001": 487450,
+        "US-2001": 342550
+      },
+      "depois": {
+        "EU-1001": 485450,
+        "US-2001": 344550
+      },
+      "final": {
+        "EU-1001": 484650,
+        "US-2001": 345350
+      }
+    }
+  },
+  "blocos": {
+    "Estado no coordenador durante a pausa": "{\n  \"estado\": \"COMMIT_DECIDIDO\",\n  \"decisao\": \"COMMIT\",\n  \"codigo_erro\": null,\n  \"parceiro\": \"NAO_APLICAVEL\",\n  \"participantes\": {\n    \"america\": \"PREPARADO\",\n    \"europa\": \"CONFIRMADO\"\n  }\n}",
+    "Resposta da API (HTTP 202)": "{\n  \"id\": \"8ca334da-7f8c-49a0-a7ff-a9fbf0c8f4da\",\n  \"estado\": \"COMMIT_DECIDIDO\",\n  \"explicacao\": \"decisao COMMIT gravada; falta aplica-la nos participantes pendentes (o credito/debito aparece quando o no responder; a recuperacao repete automaticamente)\",\n  \"decisao\": \"COMMIT\",\n  \"codigo_erro\": null,\n  \"motivo\": null,\n  \"conta_origem\": \"EU-1001\",\n  \"conta_destino\": \"US-2001\",\n  \"montante\": \"20.00\",\n  \"montante_centimos\": 2000,\n  \"moeda\": \"EUR\",\n  \"utilizador\": \"ana\",\n  \"chave_idempotencia\": \"c06-2fe2f24c-5db3-4a54-9992-9ec6afa16bab\",\n  \"instancia_api\": \"api-1\",\n  \"participantes\": [\n    {\n      \"no\": \"america\",\n      \"gid\": \"gs-8ca334da-7f8c-49a0-a7ff-a9fbf0c8f4da-america\",\n      \"estado\": \"PREPARADO\"\n    },\n    {\n      \"no\": \"europa\",\n      \"gid\": \"gs-8ca334da-7f8c-49a0-a7ff-a9fbf0c8f4da-europa\",\n      \"estado\": \"CONFIRMADO\"\n    }\n  ],\n  \"pendente_em\": [\n    \"america\"\n  ],\n  \"parceiro\": {\n    \"estado\": \"NAO_APLICAVEL\",\n    \"referencia\": null\n  },\n  \"criada_em\": \"2026-11-19T00:14:54.336098+00:00\",\n  \"decidida_em\": \"2026-11-19T00:14:54.842014+00:00\",\n  \"concluida_em\": null,\n  \"repetido\": false\n}",
+    "pg_prepared_xacts no America logo apos o reinicio": "{\n  \"europa\": [],\n  \"america\": [\n    \"gs-8ca334da-7f8c-49a0-a7ff-a9fbf0c8f4da-america\"\n  ]\n}",
+    "Diario do coordenador": "00:14:54.336  INICIADA                 ordem de api-1: EU-1001 -> US-2001, 2000 centimos\n00:14:54.559  PREPARADO                europa: PREPARE TRANSACTION 'gs-8ca334da-7f8c-49a0-a7ff-a9fbf0c8f4da-europa'\n00:14:54.742  PREPARADO                america: PREPARE TRANSACTION 'gs-8ca334da-7f8c-49a0-a7ff-a9fbf0c8f4da-america'\n00:14:54.842  DECISAO_COMMIT           todos os participantes prepararam\n00:14:55.142  PAUSA_LABORATORIO        antes_commit_america: 10.0 s\n00:14:55.272  CONFIRMADO               europa: COMMIT PREPARED 'gs-8ca334da-7f8c-49a0-a7ff-a9fbf0c8f4da-europa'\n00:15:09.313  DECISAO_PENDENTE         america: OperationalError; a decisao COMMIT mantem-se e sera repetida\n00:15:11.336  PAUSA_LABORATORIO        antes_commit_america: 25.0 s\n00:15:36.512  CONFIRMADO               america: COMMIT PREPARED 'gs-8ca334da-7f8c-49a0-a7ff-a9fbf0c8f4da-america'\n00:15:36.647  CONCLUIDA                decisao aplicada em todos os participantes\n00:15:36.912  PARCEIRO_CONFIRMOU       referencia BP-000010 (HTTP 201)",
+    "(b) Resposta da API com o America sem responder": "{\n  \"http\": 202,\n  \"instancia\": \"api-1\",\n  \"corpo\": {\n    \"id\": \"07477465-e8cc-4a01-8adf-ce8c7bc59a4e\",\n    \"estado\": \"COMMIT_DECIDIDO\",\n    \"explicacao\": \"decisao COMMIT gravada; falta aplica-la nos participantes pendentes (o credito/debito aparece quando o no responder; a recuperacao repete automaticamente)\",\n    \"decisao\": \"COMMIT\",\n    \"codigo_erro\": null,\n    \"motivo\": null,\n    \"conta_origem\": \"EU-1001\",\n    \"conta_destino\": \"US-2001\",\n    \"montante\": \"8.00\",\n    \"montante_centimos\": 800,\n    \"moeda\": \"EUR\",\n    \"utilizador\": \"ana\",\n    \"chave_idempotencia\": \"c06b-eb0fd4d2-cda2-43ff-b4f3-f7cc932a7ba1\",\n    \"instancia_api\": \"api-1\",\n    \"participantes\": [\n      {\n        \"no\": \"america\",\n        \"gid\": \"gs-07477465-e8cc-4a01-8adf-ce8c7bc59a4e-america\",\n        \"estado\": \"PREPARADO\"\n      },\n      {\n        \"no\": \"europa\",\n        \"gid\": \"gs-07477465-e8cc-4a01-8adf-ce8c7bc59a4e-europa\",\n        \"estado\": \"CONFIRMADO\"\n      }\n    ],\n    \"pendente_em\": [\n      \"america\"\n    ],\n    \"parceiro\": {\n      \"estado\": \"NAO_APLICAVEL\",\n      \"referencia\": null\n    },\n    \"criada_em\": \"2026-11-19T00:15:42.350239+00:00\",\n    \"decidida_em\": \"2026-11-19T00:15:43.104799+00:00\",\n    \"concluida_em\": null,\n    \"repetido\": false\n  }\n}",
+    "(b) Diario do coordenador": "00:15:42.350  INICIADA                 ordem de api-1: EU-1001 -> US-2001, 800 centimos\n00:15:42.650  PREPARADO                europa: PREPARE TRANSACTION 'gs-07477465-e8cc-4a01-8adf-ce8c7bc59a4e-europa'\n00:15:42.830  PREPARADO                america: PREPARE TRANSACTION 'gs-07477465-e8cc-4a01-8adf-ce8c7bc59a4e-america'\n00:15:43.104  DECISAO_COMMIT           todos os participantes prepararam\n00:15:43.344  PAUSA_LABORATORIO        antes_commit_america: 6.0 s\n00:15:43.497  CONFIRMADO               europa: COMMIT PREPARED 'gs-07477465-e8cc-4a01-8adf-ce8c7bc59a4e-europa'\n00:15:54.483  DECISAO_PENDENTE         america: TimeoutError; a decisao COMMIT mantem-se e sera repetida\n00:16:02.165  DECISAO_PENDENTE         america: TimeoutError; a decisao COMMIT mantem-se e sera repetida\n00:16:09.507  CONFIRMADO               america: COMMIT PREPARED 'gs-07477465-e8cc-4a01-8adf-ce8c7bc59a4e-america'\n00:16:09.610  CONCLUIDA                decisao aplicada em todos os participantes\n00:16:10.030  PARCEIRO_CONFIRMOU       referencia BP-000011 (HTTP 201)"
+  }
+}

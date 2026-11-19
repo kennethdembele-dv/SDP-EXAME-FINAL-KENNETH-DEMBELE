@@ -1,0 +1,33 @@
+{
+  "cenario": 99,
+  "titulo": "Verificacao global de consistencia",
+  "passou": true,
+  "passos": [],
+  "verificacoes": [
+    [
+      "soma de todos os saldos = 10 600.00 (inicial)",
+      true
+    ],
+    [
+      "nenhum saldo negativo",
+      true
+    ],
+    [
+      "16 concluidas: cada uma com exactamente um DEBITO e um CREDITO; abortadas sem movimentos",
+      true
+    ],
+    [
+      "nenhum movimento sem transferencia no coordenador",
+      true
+    ],
+    [
+      "nenhuma transaccao preparada por resolver",
+      true
+    ]
+  ],
+  "dados": {},
+  "blocos": {
+    "Saldos finais": "{\n  \"EU-1001\": \"4 837.50\",\n  \"EU-1002\": \"1 452.00\",\n  \"EU-1003\": \"0.00\",\n  \"US-2001\": \"3 466.50\",\n  \"US-2002\": \"844.00\"\n}",
+    "Transferencias no registo do coordenador": "{\n  \"ABORTADA\": 9,\n  \"CONCLUIDA\": 16\n}"
+  }
+}

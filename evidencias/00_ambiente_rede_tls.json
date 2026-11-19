@@ -1,0 +1,57 @@
+{
+  "cenario": 0,
+  "titulo": "Ambiente, rede, DNS e TLS",
+  "passou": true,
+  "passos": [
+    "`02:20:04` docker compose ps",
+    "`02:20:05` Resolucao DNS a partir do contentor api-1",
+    "`02:20:05` Parametros do PostgreSQL relevantes para o 2PC e TLS",
+    "`02:20:07` Cada servico abre uma ligacao ao db-europa com o seu DSN (TLS verify-full); o servidor mostra-as",
+    "`02:20:11` Tentar ligar ao db-europa sem TLS e com o nome errado no certificado",
+    "`02:20:12` HTTPS: pedido sem a CA do laboratorio e pedido com a CA"
+  ],
+  "verificacoes": [
+    [
+      "api-1 resolve todos os nomes dos servicos",
+      true
+    ],
+    [
+      "max_prepared_transactions > 0 e ssl=on nos tres nos",
+      true
+    ],
+    [
+      "as ligacoes de auth, api-1, api-2 e coordenador usam TLS 1.3",
+      true
+    ],
+    [
+      "sem TLS: recusado pelo pg_hba.conf",
+      true
+    ],
+    [
+      "certificado sem esse nome: recusado (verify-full)",
+      true
+    ],
+    [
+      "ligacao correcta usa TLSv1.3",
+      true
+    ],
+    [
+      "o certificado da API so e aceite com a CA do laboratorio",
+      true
+    ],
+    [
+      "HTTP sem TLS na porta 8001 e recusado: recusado (RemoteProtocolError)",
+      true
+    ]
+  ],
+  "dados": {},
+  "blocos": {
+    "Contentores (docker compose ps)": "NAME                            STATUS                        PORTS\nglobal-scale-api-1-1            Up 3 minutes (healthy)        0.0.0.0:8001->8001/tcp, [::]:8001->8001/tcp\nglobal-scale-api-2-1            Up 6 minutes (healthy)        0.0.0.0:8002->8002/tcp, [::]:8002->8002/tcp\nglobal-scale-auth-1             Up 2 minutes (healthy)        0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp\nglobal-scale-banco-parceiro-1   Up About a minute (healthy)   127.0.0.1:8200->8200/tcp\nglobal-scale-coordenador-1      Up 3 minutes (healthy)        127.0.0.1:8100->8100/tcp\nglobal-scale-db-america-1       Up 4 minutes (healthy)        5432/tcp\nglobal-scale-db-coordenador-1   Up 7 minutes (healthy)        5432/tcp\nglobal-scale-db-europa-1        Up 5 minutes (healthy)        5432/tcp\nglobal-scale-nfs-1              Up About a minute (healthy)   2049/tcp",
+    "Redes e enderecos IP (docker network inspect)": "global-scale_frontal  172.30.1.0/24\n   172.30.1.10/24     global-scale-auth-1\n   172.30.1.11/24     global-scale-api-1-1\n   172.30.1.12/24     global-scale-api-2-1\nglobal-scale_interna  172.30.2.0/24\n   172.30.2.10/24     global-scale-db-europa-1\n   172.30.2.11/24     global-scale-db-america-1\n   172.30.2.12/24     global-scale-db-coordenador-1\n   172.30.2.20/24     global-scale-coordenador-1\n   172.30.2.30/24     global-scale-banco-parceiro-1\n   172.30.2.40/24     global-scale-nfs-1\n   172.30.2.50/24     global-scale-auth-1\n   172.30.2.51/24     global-scale-api-1-1\n   172.30.2.52/24     global-scale-api-2-1",
+    "DNS interno (getaddrinfo dentro de api-1)": "db-europa        172.30.2.10\ndb-america       172.30.2.11\ndb-coordenador   172.30.2.12\ncoordenador      172.30.2.20\nauth             172.30.1.10\nbanco-parceiro   172.30.2.30\nnfs              172.30.2.40",
+    "Configuracao dos nos PostgreSQL": "db-europa       max_prepared_transactions=40  ssl=on  porta=5433  PostgreSQL 17.12\ndb-america      max_prepared_transactions=40  ssl=on  porta=5434  PostgreSQL 17.12\ndb-coordenador  max_prepared_transactions=40  ssl=on  porta=5435  PostgreSQL 17.12",
+    "Ligacoes ao db-europa vistas pelo servidor (pg_stat_ssl): servico | papel | IP | ssl | versao | cifra": "api-1 | gs_leitura | 172.30.2.51 | t | TLSv1.3 | TLS_AES_256_GCM_SHA384\napi-2 | gs_leitura | 172.30.2.52 | t | TLSv1.3 | TLS_AES_256_GCM_SHA384\nauth | gs_leitura | 172.30.2.50 | t | TLSv1.3 | TLS_AES_256_GCM_SHA384\ncoordenador | gs_transaccoes | 172.30.2.20 | t | TLSv1.3 | TLS_AES_256_GCM_SHA384",
+    "Ligacoes de teste a partir de api-1": "sem TLS -> RECUSADO: connection failed: connection to server at \"172.30.2.10\", port 5433 failed: FATAL:  pg_hba.conf rejects connection for host \"172.30.2.51\", user \"gs_le\nIP em vez do nome -> RECUSADO: connection failed: connection to server at \"172.30.2.10\", port 5433 failed: server certificate for \"db-europa\" (and 2 other names) does not match host\ncorrecto -> ligou, TLS TLSv1.3",
+    "HTTPS na API": "sem a CA do laboratorio: recusado: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1010)\ncom a CA: HTTP 200 {'servico': 'api-1', 'estado': 'ok', 'auditoria_por_publicar': 0}"
+  }
+}
