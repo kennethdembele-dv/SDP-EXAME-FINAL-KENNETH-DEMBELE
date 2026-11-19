@@ -25,6 +25,7 @@ JWT_VALIDADE_S = int(os.environ.get("JWT_VALIDADE_S", "900"))
 
 COORDENADOR_URL = os.environ.get("COORDENADOR_URL", "https://coordenador:8100")
 BANCO_PARCEIRO_URL = os.environ.get("BANCO_PARCEIRO_URL", "https://banco-parceiro:8200")
+AUTH_URL = os.environ.get("AUTH_URL", "https://auth:8000")
 DFS = Path(os.environ.get("DFS", "/mnt/dfs"))
 SPOOL = Path(os.environ.get("SPOOL", "/var/spool/gs-auditoria"))
 

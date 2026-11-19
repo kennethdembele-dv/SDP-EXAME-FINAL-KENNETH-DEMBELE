@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Global-Scale · Plataforma Financeira</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23173b6c'/%3E%3Cpath d='M6 16h20M16 3c5 4 5 22 0 26M16 3c-5 4-5 22 0 26' stroke='%2366d9c8' stroke-width='2' fill='none'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<!-- ============================================================ entrada -->
+<section id="entrada" class="entrada" hidden>
+  <div class="entrada-cartao">
+    <div class="marca grande">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14"/><path d="M6 16h20M16 3c5 4 5 22 0 26M16 3c-5 4-5 22 0 26"/></svg>
+      <div><b>Global-Scale</b><span>Plataforma de transacções financeiras distribuída</span></div>
+    </div>
+    <form id="form-entrada" autocomplete="on">
+      <label>Utilizador<input id="e-utilizador" name="username" required autocomplete="username" placeholder="ana"></label>
+      <label>Palavra-passe<input id="e-senha" name="password" type="password" required autocomplete="current-password" placeholder="••••••••"></label>
+      <button class="botao primario largo" type="submit">Entrar</button>
+      <p id="e-erro" class="erro" role="alert"></p>
+    </form>
+    <div class="demo">
+      <span>Contas de demonstração (laboratório)</span>
+      <div class="demo-lista">
+        <button type="button" data-u="ana" data-p="Ana#2026"><i class="bandeira eu">EU</i>ana</button>
+        <button type="button" data-u="bruno" data-p="Bruno#2026"><i class="bandeira eu">EU</i>bruno</button>
+        <button type="button" data-u="carlos" data-p="Carlos#2026"><i class="bandeira us">US</i>carlos</button>
+        <button type="button" data-u="diana" data-p="Diana#2026"><i class="bandeira us">US</i>diana</button>
+      </div>
+    </div>
+    <p class="nota-seg">O login é verificado pelo nó emissor de tokens (scrypt) e devolve um JWT RS256. As APIs validam-no
+      localmente com a chave pública. Toda a comunicação usa HTTPS.</p>
+  </div>
+</section>
+
+<!-- ============================================================ aplicacao -->
+<div id="app" class="app" hidden>
+  <aside class="lateral">
+    <div class="marca">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14"/><path d="M6 16h20M16 3c5 4 5 22 0 26M16 3c-5 4-5 22 0 26"/></svg>
+      <div><b>Global-Scale</b><span>System</span></div>
+    </div>
+    <nav id="menu">
+      <a href="#painel" data-vista="painel"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3zm10 8h8V11h-8zM3 21h8v-6H3zm10-18v6h8V3z"/></svg>Painel</a>
+      <a href="#contas" data-vista="contas"><svg viewBox="0 0 24 24"><path d="M3 6h18v12H3zM3 10h18M7 15h4"/></svg>Contas</a>
+      <a href="#transferir" data-vista="transferir"><svg viewBox="0 0 24 24"><path d="M4 8h14l-4-4M20 16H6l4 4"/></svg>Transferir</a>
+      <a href="#transferencias" data-vista="transferencias"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Monitor 2PC</a>
+      <a href="#relatorios" data-vista="relatorios"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7"/></svg>Relatórios (DFS)</a>
+      <a href="#sistema" data-vista="sistema"><svg viewBox="0 0 24 24"><path d="M4 5h16v6H4zM4 13h16v6H4zM8 8h.01M8 16h.01"/></svg>Estado do sistema</a>
+      <a href="#seguranca" data-vista="seguranca"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>Segurança</a>
+    </nav>
+    <div class="lateral-rodape">
+      <span>ISUTC · SDP · Exame Normal</span>
+      <span>Kenneth Dembele · LECC31</span>
+    </div>
+  </aside>
+
+  <main class="principal">
+    <header class="topo">
+      <button id="b-menu" class="botao icone so-movel" aria-label="Menu">☰</button>
+      <h1 id="titulo-vista">Painel</h1>
+      <div class="topo-info">
+        <span class="pill" id="pill-instancia" title="Instância da API que respondeu ao último pedido">api-?</span>
+        <span class="pill neutro" id="pill-token" title="Validade do JWT">token</span>
+        <div class="utilizador">
+          <span class="avatar" id="u-avatar">?</span>
+          <div><b id="u-nome">—</b><small id="u-regiao">—</small></div>
+        </div>
+        <button class="botao fantasma" id="b-sair">Sair</button>
+      </div>
+    </header>
+
+    <!-- painel -->
+    <section class="vista" id="v-painel">
+      <div class="kpis">
+        <div class="kpi"><span>Saldo total</span><b id="k-saldo">—</b><small id="k-contas">—</small></div>
+        <div class="kpi"><span>Transferências concluídas</span><b id="k-concluidas">—</b><small>um débito + um crédito cada</small></div>
+        <div class="kpi aviso"><span>A concluir (2PC pendente)</span><b id="k-pendentes">—</b><small>decisão gravada, à espera de um nó</small></div>
+        <div class="kpi perigo"><span>Abortadas</span><b id="k-abortadas">—</b><small>nenhum saldo alterado</small></div>
+      </div>
+      <div class="grelha-2">
+        <div class="cartao">
+          <div class="cartao-topo"><h2>As minhas contas</h2><a href="#contas" class="ligacao">ver todas</a></div>
+          <div id="p-contas" class="lista-contas"></div>
+        </div>
+        <div class="cartao">
+          <div class="cartao-topo"><h2>Estado dos nós</h2><a href="#sistema" class="ligacao">detalhe</a></div>
+          <div id="p-sistema" class="mini-estado"></div>
+        </div>
+      </div>
+      <div class="cartao">
+        <div class="cartao-topo"><h2>Últimas transferências</h2><a href="#transferencias" class="ligacao">monitor 2PC</a></div>
+        <div id="p-transf"></div>
+      </div>
+    </section>
+
+    <!-- contas -->
+    <section class="vista" id="v-contas" hidden>
+      <p class="intro">As contas estão <b>fragmentadas por região</b>: <code>EU-xxxx</code> no nó <b>db-europa</b> e
+        <code>US-xxxx</code> no nó <b>db-america</b>. O saldo é lido directamente no nó da conta (PostgreSQL com TLS).</p>
+      <div id="c-contas" class="cartoes-contas"></div>
+      <div class="cartao" id="c-historico-cartao" hidden>
+        <div class="cartao-topo"><h2 id="c-historico-titulo">Histórico</h2>
+          <button class="botao fantasma" id="b-extracto-conta">Gerar extracto no DFS</button></div>
+        <div id="c-historico"></div>
+      </div>
+    </section>
+
+    <!-- transferir -->
+    <section class="vista" id="v-transferir" hidden>
+      <div class="grelha-form">
+        <form class="cartao" id="form-transf">
+          <h2>Nova transferência</h2>
+          <p class="intro pequeno">Uma transferência entre regiões é uma <b>transacção distribuída</b> com Two-Phase Commit:
+            os dois nós preparam (<code>PREPARE TRANSACTION</code>), o coordenador grava a decisão e só depois confirma.</p>
+          <label>Conta de origem<select id="t-origem" required></select></label>
+          <label>Conta de destino
+            <input id="t-destino" list="contas-conhecidas" required placeholder="US-2001" pattern="(EU|US)-\d{4}">
+            <datalist id="contas-conhecidas">
+              <option value="EU-1001">Ana Silva · Europa</option><option value="EU-1002">Ana Silva · Europa</option>
+              <option value="EU-1003">Bruno Costa · Europa</option><option value="US-2001">Carlos Mendes · América</option>
+              <option value="US-2002">Diana Lopes · América</option>
+            </datalist>
+          </label>
+          <div class="destino-info" id="t-rota"></div>
+          <label>Montante (EUR)<input id="t-montante" required inputmode="decimal" placeholder="125,50"></label>
+          <label>Chave de idempotência
+            <div class="com-botao"><input id="t-chave" required minlength="8" maxlength="100"><button type="button" class="botao fantasma" id="b-nova-chave" title="Gerar outra chave">↻</button></div>
+            <small>Repetir o pedido com a mesma chave devolve a mesma transferência (nunca duplica).</small>
+          </label>
+          <div class="acoes">
+            <button class="botao primario" type="submit" id="b-transferir">Transferir</button>
+            <button class="botao fantasma" type="button" id="b-repetir" disabled title="Envia de novo com a mesma chave">Repetir com a mesma chave</button>
+          </div>
+          <p id="t-erro" class="erro" role="alert"></p>
+        </form>
+        <div class="cartao" id="t-resultado">
+          <h2>Percurso da transacção distribuída</h2>
+          <div id="t-linha" class="vazio">Faça uma transferência para ver o protocolo 2PC passo a passo.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- monitor 2PC -->
+    <section class="vista" id="v-transferencias" hidden>
+      <div class="barra">
+        <p class="intro">Estado de cada transferência no registo do coordenador e de cada participante. Durante uma falha
+          (por exemplo <code>docker compose stop db-america</code>) uma transferência pode ficar <b>COMMIT_DECIDIDO</b> e
+          concluir sozinha quando o nó voltar.</p>
+        <label class="interruptor"><input type="checkbox" id="m-auto" checked><span></span>Actualizar a cada 3 s</label>
+      </div>
+      <div class="cartao"><div id="m-tabela"></div></div>
+    </section>
+
+    <!-- relatorios -->
+    <section class="vista" id="v-relatorios" hidden>
+      <p class="intro">Os extractos e a auditoria ficam no <b>sistema de ficheiros distribuído</b> (NFSv4), montado em
+        <code>/mnt/dfs</code> nas duas APIs e no coordenador. Um relatório escrito pela api-1 é lido pela api-2 sem saber
+        em que máquina está o disco (transparência de localização).</p>
+      <div class="grelha-form">
+        <div class="cartao">
+          <h2>Gerar extracto</h2>
+          <label>Conta<select id="r-conta"></select></label>
+          <button class="botao primario" id="b-gerar">Gerar extracto CSV no DFS</button>
+          <p id="r-msg" class="nota"></p>
+          <div class="cartao-topo"><h2>Relatórios no DFS</h2><button class="botao fantasma" id="b-r-actualizar">Actualizar</button></div>
+          <div id="r-lista"></div>
+        </div>
+        <div class="cartao">
+          <div class="cartao-topo"><h2 id="r-titulo">Conteúdo</h2><span class="pill neutro" id="r-lido"></span></div>
+          <div id="r-conteudo" class="vazio">Escolha um relatório.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- sistema -->
+    <section class="vista" id="v-sistema" hidden>
+      <div class="barra">
+        <p class="intro">Cada componente é verificado pela instância da API que está a responder. Derrube um nó na
+          demonstração (<code>docker compose stop …</code>) e veja-o ficar vermelho; ao arrancar de novo volta a verde.</p>
+        <div class="barra-acoes">
+          <label class="interruptor"><input type="checkbox" id="s-auto" checked><span></span>A cada 3 s</label>
+          <button class="botao fantasma" id="b-trocar">Usar a outra instância</button>
+        </div>
+      </div>
+      <div class="topologia" id="s-topologia"></div>
+      <div class="cartao"><div id="s-tabela"></div><p class="nota" id="s-hora"></p></div>
+    </section>
+
+    <!-- seguranca -->
+    <section class="vista" id="v-seguranca" hidden>
+      <div class="grelha-2">
+        <div class="cartao">
+          <h2>Token JWT (RS256)</h2>
+          <p class="intro pequeno">Emitido pelo nó <b>auth</b> com a chave privada. A API verifica a assinatura,
+            <code>exp</code>, <code>iss</code> e <code>aud</code> com a chave pública, sem contactar o emissor.</p>
+          <div id="j-partes" class="jwt"></div>
+          <div id="j-claims"></div>
+        </div>
+        <div class="cartao">
+          <h2>Ordem de transferência assinada</h2>
+          <p class="intro pequeno">Os campos da ordem são postos em JSON canónico, resumidos com <b>SHA-256</b> e assinados
+            com <b>RSA-PSS</b> pela chave privada da instância. O coordenador verifica a assinatura antes de alterar
+            qualquer saldo; um montante adulterado é recusado (HTTP 401).</p>
+          <div id="j-ordem" class="vazio">Faça uma transferência para ver o resumo SHA-256 da ordem assinada.</div>
+          <h2 class="espaco">Medidas activas</h2>
+          <ul class="lista-seg">
+            <li><b>TLS/HTTPS</b> em todos os serviços Web e <b>TLS verify-full</b> nas ligações ao PostgreSQL</li>
+            <li>Palavras-passe com <b>scrypt</b> e sal aleatório</li>
+            <li>Autorização: só o titular consulta ou movimenta a conta</li>
+            <li>Janela de 120 s e chave de idempotência contra repetições</li>
+            <li>Segredos fora do repositório (Docker secrets)</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- painel lateral de detalhe -->
+<div id="gaveta" class="gaveta" hidden>
+  <div class="gaveta-fundo" data-fechar></div>
+  <aside class="gaveta-painel" role="dialog" aria-modal="true" aria-labelledby="g-titulo">
+    <header><h2 id="g-titulo">Transferência</h2><button class="botao icone" data-fechar aria-label="Fechar">✕</button></header>
+    <div id="g-corpo"></div>
+  </aside>
+</div>
+
+<div id="aviso" class="aviso-toast" role="status" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

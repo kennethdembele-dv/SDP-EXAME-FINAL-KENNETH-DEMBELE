@@ -631,6 +631,56 @@ async def decidir(tid, decisao):                                  # gravada ANTE
              "Python: basta o contrato XML, o que num ambiente CORBA exigiria um ORB compatível dos dois lados.")
 
     # ---------------------------------------------------------------- 5
+    # ---------------------------------------------------------------- 4.4 interface Web
+    h = H2("4.4 Interface gráfica Web")
+    h.paragraph_format.page_break_before = True
+    par(doc, "O sistema tem uma interface Web para operar e demonstrar a plataforma, servida pelas próprias instâncias da "
+             "API (`https://localhost:8001/` e `:8002/`, ficheiros em `servicos/api/web/`). É uma aplicação de página única "
+             "em HTML, CSS e JavaScript sem bibliotecas externas, que usa apenas a API REST pública documentada em OpenAPI: "
+             "a interface é mais um cliente do serviço Web, como o `cliente.py` ou o Swagger. O login é encaminhado pela API "
+             "para o nó emissor de tokens, e a página guarda o JWT apenas durante a sessão do separador.")
+    tabela(doc, ["Vista", "Requisito do exame que demonstra"], [
+        ["Entrada", "Autenticação distribuída: JWT RS256 emitido pelo nó auth (palavra-passe com scrypt)"],
+        ["Painel", "Saldos lidos nos dois fragmentos; contagem de transferências concluídas, pendentes e abortadas"],
+        ["Contas", "Fragmentação por região (EU-xxxx no db-europa, US-xxxx no db-america); histórico de movimentos"],
+        ["Transferir", "2PC passo a passo: preparação em cada nó (gid), decisão durável, confirmação e banco parceiro; "
+                       "idempotência (repetir com a mesma chave)"],
+        ["Monitor 2PC", "Estado do coordenador coerente com o de cada participante, actualizado a cada 3 s; detalhe com o "
+                        "XML do banco Java e a auditoria do NFS"],
+        ["Relatórios (DFS)", "Extracto escrito no NFS por uma instância e lido por qualquer uma (transparência de localização)"],
+        ["Estado do sistema", "Os oito componentes verificados a cada 3 s; um nó derrubado na demonstração fica vermelho"],
+        ["Segurança", "JWT descodificado (iss, aud, exp, sub) e resumo SHA-256 da última ordem assinada com RSA-PSS"],
+    ], [3.6, 13.0])
+    par(doc, "**Tolerância a falhas na própria interface.** Cada pedido vai para a instância que serviu a página; se ela não "
+             "aceitar a ligação, a página repete o pedido na outra instância e mostra qual respondeu (cabeçalho "
+             "`X-Instancia`). Uma transferência repetida assim leva a mesma `Idempotency-Key`, por isso nunca é executada "
+             "duas vezes. Quando uma transferência fica COMMIT_DECIDIDO, a vista Transferir consulta o estado a cada 2 s e "
+             "mostra-a a passar para CONCLUIDA quando o nó volta.")
+    par(doc, "As figuras seguintes são capturas reais do Microsoft Edge a usar o sistema em execução "
+             "(`docs/relatorio/capturar_interface.py`, que percorre a interface e regista qualquer erro de JavaScript: "
+             "não houve nenhum).")
+    for nome, legenda, largura in [
+        ("ui_01_entrada.png", "Interface Web: entrada com as contas de demonstração.", 12.5),
+        ("ui_02_painel.png", "Interface Web: painel com saldos, transferências e estado dos nós.", 16.0),
+        ("ui_04_transferencia_2pc.png", "Interface Web: transferência Europa → América e as fases do 2PC, até à "
+                                        "confirmação do banco parceiro.", 16.0),
+        ("ui_05_idempotencia.png", "Interface Web: o mesmo pedido repetido com a mesma chave devolve a mesma transferência "
+                                   "(\"repetido\").", 16.0),
+        ("ui_06_detalhe_xml_auditoria.png", "Interface Web: detalhe com o XML devolvido pelo banco parceiro (Java) e a "
+                                            "auditoria lida do NFS.", 10.5),
+        ("ui_08_monitor_2pc.png", "Interface Web: monitor do 2PC com o estado de cada participante.", 16.0),
+        ("ui_09_relatorios_dfs.png", "Interface Web: extracto CSV gravado no DFS e lido de volta.", 16.0),
+        ("ui_10_sistema.png", "Interface Web: estado dos oito componentes, verificado pela instância que responde.", 16.0),
+        ("ui_12_sistema_no_em_baixo.png", "Interface Web durante a demonstração de falha: db-america parado "
+                                          "(docker compose stop db-america) aparece a vermelho.", 16.0),
+        ("ui_13_transferencia_no_em_baixo.png", "Interface Web: com o nó América em baixo a transferência é abortada; a "
+                                                "Europa fez ROLLBACK PREPARED e nenhum saldo mudou.", 16.0),
+        ("ui_11_seguranca.png", "Interface Web: JWT descodificado e resumo SHA-256 da ordem assinada.", 16.0),
+    ]:
+        png = CAPTURAS / nome
+        if png.exists():
+            fig_numerada(doc, png, legenda + " Captura de ecrã real do Microsoft Edge.", largura)
+
     H1("5. Parte 4: técnicas de segurança")
     H2("5.1 Cifragem do canal (TLS)")
     par(doc, "O script `seguranca/gerar_materiais.py` cria uma autoridade certificadora (CA) de laboratório e um "
@@ -772,6 +822,7 @@ async def decidir(tid, decisao):                                  # gravada ANTE
         ["Idempotência e reutilização da chave", "registar_ou_obter(), hash_pedido()", "Cenário 4"],
         ["Justificação da linguagem", "Secção 3.6", "-"],
         ["API REST/JSON com OpenAPI", "servicos/api/main.py, /docs, docs/openapi/*.json", "Todos os cenários"],
+        ["Interface gráfica Web", "servicos/api/web/ (servida em https://localhost:8001/)", "Secção 4.4"],
         ["Módulo noutra tecnologia (Java) com XML", "banco-parceiro/, comum/contrato_parceiro.py", "Cenário 11"],
         ["Análise OMA/OMG", "Secção 4.3", "-"],
         ["TLS nos serviços Web e na BD", "comum/servidor.py, bd/pg_hba.conf, comum/bd.py", "Cenário 0"],

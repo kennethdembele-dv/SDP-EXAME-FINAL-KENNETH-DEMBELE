@@ -75,6 +75,26 @@ demonstracao sao carregados automaticamente:
 
 Estas palavras-passe sao ficticias e so existem para o laboratorio.
 
+## Interface grafica Web
+
+Abrir <https://localhost:8001/> (ou <https://localhost:8002/>). A interface e servida pelas proprias APIs
+(`servicos/api/web/`) e usa so a API REST publica. Entrar com uma das contas de demonstracao (botoes no ecra de entrada).
+
+| Vista | O que mostra |
+|---|---|
+| Painel | Saldo total, transferencias concluidas, pendentes e abortadas, contas e estado dos nos |
+| Contas | Uma conta por cartao (no Europa ou America) e o historico de movimentos |
+| Transferir | Transferencia com chave de idempotencia; percurso do 2PC passo a passo (preparacao em cada no, decisao gravada, confirmacao, banco parceiro); botao para repetir com a mesma chave |
+| Monitor 2PC | Estado de cada transferencia e de cada participante, actualizado a cada 3 s; detalhe com o XML do banco Java e a auditoria do NFS |
+| Relatorios (DFS) | Extractos CSV escritos no NFS por uma instancia e lidos por qualquer uma |
+| Estado do sistema | Os 8 componentes verificados a cada 3 s; um no derrubado fica vermelho |
+| Seguranca | O JWT descodificado (cabecalho e reivindicacoes) e o SHA-256 da ultima ordem assinada |
+
+Se a instancia da API deixar de responder, a pagina passa sozinha para a outra (o pedido de transferencia
+leva a mesma chave de idempotencia, por isso nunca duplica). Para isso o navegador tem de confiar na CA do
+laboratorio (`certutil -addstore -user Root segredos\ca.crt`); sem ela, aceita-se o aviso do certificado na
+primeira visita a cada porta.
+
 ## Utilizacao
 
 **Swagger (OpenAPI):** <https://localhost:8001/docs> e <https://localhost:8002/docs>.

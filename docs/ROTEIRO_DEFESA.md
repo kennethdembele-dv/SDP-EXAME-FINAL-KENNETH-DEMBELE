@@ -26,6 +26,12 @@ docker compose exec db-europa  psql -U postgres -p 5433 -d globalscale -tAc "SEL
 docker compose exec db-america psql -U postgres -p 5434 -d globalscale -tAc "SELECT sum(saldo_centimos) FROM contas"
 ```
 
+## 0. Interface Web (durante toda a defesa)
+
+Abrir <https://localhost:8001/> e entrar como `ana`. Manter visiveis o **Estado do sistema** (cada `docker compose
+stop` fica vermelho em menos de 3 s) e o **Monitor 2PC** (as transferencias pendentes passam a CONCLUIDA quando o no
+volta). Todas as demonstracoes abaixo podem ser feitas pela vista **Transferir**, que mostra as fases do 2PC.
+
 ## 1. Arquitectura, rede e TLS (2 min)
 
 ```sh

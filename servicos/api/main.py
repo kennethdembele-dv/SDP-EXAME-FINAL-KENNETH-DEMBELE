@@ -8,17 +8,22 @@ Concorrencia: os endpoints sao funcoes normais (def). O FastAPI corre cada pedid
 de um pool; enquanto uma thread espera pela base de dados ou pela rede, o GIL e libertado e as
 outras threads avancam. As ligacoes a BD vem de um pool partilhado e seguro entre threads.
 """
+import concurrent.futures as cf
 import csv
 import io
 import os
 import re
+import time
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import httpx
 import psycopg
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from psycopg_pool import NullConnectionPool, PoolTimeout
 from pydantic import BaseModel, Field
 
@@ -40,6 +45,9 @@ tls = config.contexto_tls_cliente()
 # (nao e uma decisao de abortar: a transferencia pode ter sido confirmada).
 coordenador = httpx.Client(base_url=config.COORDENADOR_URL, verify=tls, timeout=httpx.Timeout(30, connect=3))
 parceiro = httpx.Client(base_url=config.BANCO_PARCEIRO_URL, verify=tls, timeout=httpx.Timeout(5, connect=3))
+autenticacao = httpx.Client(base_url=config.AUTH_URL, verify=tls, timeout=httpx.Timeout(10, connect=3))
+OUTRA = "api-2" if INSTANCIA == "api-1" else "api-1"
+OUTRA_URL = os.environ.get("OUTRA_API_URL", f"https://{OUTRA}:{8002 if OUTRA == 'api-2' else 8001}")
 registo = auditoria.Auditoria(INSTANCIA)
 
 
@@ -55,6 +63,11 @@ async def ciclo_de_vida(app):
 app = FastAPI(title=f"Global-Scale: API financeira ({INSTANCIA})", version="1.0", lifespan=ciclo_de_vida,
               description="Consulta de contas, saldo, historico e transferencias entre regioes. "
                           "Autenticacao: Bearer JWT obtido em https://localhost:8000/api/v1/autenticacao/token")
+
+
+# A interface Web de uma instancia pode passar para a outra (failover no navegador).
+app.add_middleware(CORSMiddleware, allow_origins=[f"https://{h}:{p}" for h in ("localhost", "127.0.0.1") for p in (8001, 8002)],
+                   allow_methods=["*"], allow_headers=["*"], expose_headers=["X-Instancia"])
 
 
 @app.middleware("http")
@@ -173,8 +186,12 @@ def transferir(pedido: PedidoTransferencia, u: tokens.Utilizador = Depends(utili
     corpo = {"mensagem": mensagem, "assinatura": assinatura.assinar(mensagem, CHAVE_ASSINATURA)}
     r = falar_com_coordenador("POST", "/transferencias", u, json=corpo)
     resultado = r.json()
+    resumo = assinatura.resumo_sha256(mensagem)
     registo.registar(resultado.get("id", mensagem["id"]), "ORDEM_ENVIADA", resultado.get("estado", f"HTTP {r.status_code}"),
-                     utilizador=u.id, sha256=assinatura.resumo_sha256(mensagem), http=r.status_code)
+                     utilizador=u.id, sha256=resumo, http=r.status_code)
+    if isinstance(resultado, dict):                         # mostrado na interface Web
+        resultado["ordem_assinada"] = {"instancia": INSTANCIA, "algoritmo": "RSA-PSS com SHA-256",
+                                       "sha256_canonico": resumo, "emitido_em": mensagem["emitido_em"]}
     return JSONResponse(resultado, status_code=r.status_code)
 
 
@@ -278,6 +295,86 @@ def ler_relatorio(nome: str, u: tokens.Utilizador = Depends(utilizador_actual)):
     except OSError as e:
         raise HTTPException(503, f"DFS indisponivel: {e}")
     return PlainTextResponse(conteudo, headers={"X-Lido-Por": INSTANCIA})
+
+
+# ---------------------------------------------------------------- interface Web
+@app.post("/api/v1/autenticacao/token", tags=["autenticacao"])
+def login(credenciais: dict):
+    """Encaminha o login para o no emissor de tokens (auth). A API nao emite tokens: so os valida.
+    Existe para a interface Web falar com uma so origem HTTPS."""
+    try:
+        r = autenticacao.post("/api/v1/autenticacao/token", json=credenciais)
+    except httpx.TransportError:
+        raise HTTPException(503, "servico de autenticacao indisponivel (os tokens ja emitidos continuam validos)")
+    return JSONResponse(r.json(), status_code=r.status_code)
+
+
+def _verificar(nome: str, tipo: str, endereco: str, funcao) -> dict:
+    inicio = time.perf_counter()
+    try:
+        detalhe = funcao()
+        estado = "ok"
+    except HTTPException as e:
+        estado, detalhe = "falha", str(e.detail)
+    except Exception as e:                                  # o objectivo e mostrar a falha, nao propaga-la
+        estado, detalhe = "falha", f"{type(e).__name__}: {str(e)[:120]}"
+    return {"nome": nome, "tipo": tipo, "endereco": endereco, "estado": estado,
+            "ms": round((time.perf_counter() - inicio) * 1000), "detalhe": detalhe}
+
+
+def _http(destino, caminho="/saude"):
+    r = (destino.get(caminho) if isinstance(destino, httpx.Client)
+         else httpx.get(destino + caminho, verify=tls, timeout=3))
+    if r.status_code != 200:
+        raise RuntimeError(f"HTTP {r.status_code}")
+    return f"HTTPS {r.status_code}"
+
+
+def _versao_tls(no: str) -> str:
+    v = consultar(no, "SELECT version FROM pg_stat_ssl WHERE pid = pg_backend_pid()")
+    return f"ligação {v[0][0] if v else 'sem TLS'} (verify-full)"
+
+
+def _dfs():
+    pastas = list((config.DFS / "auditoria").iterdir())
+    return f"montado em /mnt/dfs; {len(pastas)} dia(s) de auditoria; {registo.pendentes()} evento(s) em espera local"
+
+
+_executor = cf.ThreadPoolExecutor(max_workers=8, thread_name_prefix="estado")
+
+
+@app.get("/api/v1/sistema/estado", tags=["sistema"])
+def estado_sistema(u: tokens.Utilizador = Depends(utilizador_actual)):
+    """Estado de cada componente visto por esta instancia (painel da interface Web)."""
+    eu, us = config.NOS["europa"], config.NOS["america"]
+    verificacoes = [
+        ("db-europa", "PostgreSQL 17, fragmento EU", f"{eu['host']}:{eu['porta']}", lambda: _versao_tls("europa")),
+        ("db-america", "PostgreSQL 17, fragmento US", f"{us['host']}:{us['porta']}", lambda: _versao_tls("america")),
+        ("coordenador", "Coordenador 2PC (Python, asyncio)", config.COORDENADOR_URL, lambda: _http(coordenador)),
+        ("auth", "Emissor de tokens JWT", config.AUTH_URL, lambda: _http(autenticacao)),
+        ("banco-parceiro", "Banco parceiro (Java, XML)", config.BANCO_PARCEIRO_URL, lambda: _http(parceiro)),
+        (OUTRA, "Outra instância da API", OUTRA_URL, lambda: _http(OUTRA_URL)),
+        ("nfs", "Sistema de ficheiros NFSv4", "/mnt/dfs", _dfs),
+    ]
+    futuros = [_executor.submit(_verificar, *v) for v in verificacoes]
+    componentes = [{"nome": INSTANCIA, "tipo": "API financeira (esta instância)", "endereco": f"https://{INSTANCIA}:{PORTA}",
+                    "estado": "ok", "ms": 0, "detalhe": "a responder a este pedido"}]
+    for v, f in zip(verificacoes, futuros):
+        try:
+            componentes.append(f.result(timeout=6))
+        except cf.TimeoutError:                             # por exemplo, o NFS a espera do servidor
+            componentes.append({"nome": v[0], "tipo": v[1], "endereco": v[2], "estado": "falha", "ms": 6000,
+                                "detalhe": "sem resposta em 6 s (nó em baixo ou rede cortada)"})
+    return {"instancia": INSTANCIA, "verificado_em": assinatura.agora_utc(), "componentes": componentes}
+
+
+WEB = Path(__file__).resolve().parent / "web"
+app.mount("/app", StaticFiles(directory=WEB, html=True), name="interface")
+
+
+@app.get("/", include_in_schema=False)
+def raiz():
+    return RedirectResponse("/app/")
 
 
 @app.get("/saude", tags=["sistema"])
