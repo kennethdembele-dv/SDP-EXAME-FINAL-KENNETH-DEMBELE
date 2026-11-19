@@ -370,9 +370,9 @@ def conteudo(doc, fig, ev):
                  "\"PC B\" montou o NFS do \"PC A\". O ensaio não substitui a prova física com duas máquinas, que se faz "
                  "com o mesmo procedimento trocando `host-gateway` pelos IP reais.")
     captura_real(doc, "ambiente.png", "Contentores, imagens, portas e endereços IP nas duas redes (docker compose ps e "
-                 "docker network inspect).")
+                 "docker network inspect).", largura=14.0)
     captura_real(doc, "ensaio_dois_pcs.png", "Ensaio da configuração de dois computadores num só PC "
-                 "(python testes/ensaio_distribuido.py).")
+                 "(python testes/ensaio_distribuido.py).", largura=12.5)
 
     H2("2.4 Sistemas operativos e contentores")
     par(doc, "Cada serviço corre num contentor Linux: Alpine para o PostgreSQL e o Java, Debian slim para o Python e "
@@ -384,7 +384,6 @@ def conteudo(doc, fig, ev):
              "Do ponto de vista dos sistemas operativos distribuídos, a camada Docker oferece transparência de "
              "localização (o serviço é um nome, não uma máquina) e de migração (o mesmo contentor corre no PC A ou "
              "no PC B sem alterar o código).")
-    captura_real(doc, "docker_desktop.png", "Docker Desktop com os contentores do Global-Scale em execução.")
 
     H2("2.5 Sistema de ficheiros distribuído (NFS)")
     par(doc, "O DFS é um servidor NFSv4 em espaço de utilizador, o NFS-Ganesha [20], que exporta `/dfs`. O volume "
@@ -632,8 +631,7 @@ async def decidir(tid, decisao):                                  # gravada ANTE
 
     # ---------------------------------------------------------------- 5
     # ---------------------------------------------------------------- 4.4 interface Web
-    h = H2("4.4 Interface gráfica Web")
-    h.paragraph_format.page_break_before = True
+    H2("4.4 Interface gráfica Web")
     par(doc, "O sistema tem uma interface Web para operar e demonstrar a plataforma, servida pelas próprias instâncias da "
              "API (`https://localhost:8001/` e `:8002/`, ficheiros em `servicos/api/web/`). É uma aplicação de página única "
              "em HTML, CSS e JavaScript sem bibliotecas externas, que usa apenas a API REST pública documentada em OpenAPI: "
@@ -656,26 +654,13 @@ async def decidir(tid, decisao):                                  # gravada ANTE
              "`X-Instancia`). Uma transferência repetida assim leva a mesma `Idempotency-Key`, por isso nunca é executada "
              "duas vezes. Quando uma transferência fica COMMIT_DECIDIDO, a vista Transferir consulta o estado a cada 2 s e "
              "mostra-a a passar para CONCLUIDA quando o nó volta.")
-    par(doc, "As figuras seguintes são capturas reais do Microsoft Edge a usar o sistema em execução "
-             "(`docs/relatorio/capturar_interface.py`, que percorre a interface e regista qualquer erro de JavaScript: "
-             "não houve nenhum).")
+    par(doc, "As figuras são capturas reais do Microsoft Edge com o sistema em execução; as restantes vistas estão em "
+             "`docs/relatorio/capturas/` (`capturar_interface.py` percorre a interface e não registou erros de JavaScript).")
     for nome, legenda, largura in [
-        ("ui_01_entrada.png", "Interface Web: entrada com as contas de demonstração.", 12.5),
-        ("ui_02_painel.png", "Interface Web: painel com saldos, transferências e estado dos nós.", 16.0),
         ("ui_04_transferencia_2pc.png", "Interface Web: transferência Europa → América e as fases do 2PC, até à "
-                                        "confirmação do banco parceiro.", 16.0),
-        ("ui_05_idempotencia.png", "Interface Web: o mesmo pedido repetido com a mesma chave devolve a mesma transferência "
-                                   "(\"repetido\").", 16.0),
-        ("ui_06_detalhe_xml_auditoria.png", "Interface Web: detalhe com o XML devolvido pelo banco parceiro (Java) e a "
-                                            "auditoria lida do NFS.", 10.5),
-        ("ui_08_monitor_2pc.png", "Interface Web: monitor do 2PC com o estado de cada participante.", 16.0),
-        ("ui_09_relatorios_dfs.png", "Interface Web: extracto CSV gravado no DFS e lido de volta.", 16.0),
-        ("ui_10_sistema.png", "Interface Web: estado dos oito componentes, verificado pela instância que responde.", 16.0),
-        ("ui_12_sistema_no_em_baixo.png", "Interface Web durante a demonstração de falha: db-america parado "
-                                          "(docker compose stop db-america) aparece a vermelho.", 16.0),
-        ("ui_13_transferencia_no_em_baixo.png", "Interface Web: com o nó América em baixo a transferência é abortada; a "
-                                                "Europa fez ROLLBACK PREPARED e nenhum saldo mudou.", 16.0),
-        ("ui_11_seguranca.png", "Interface Web: JWT descodificado e resumo SHA-256 da ordem assinada.", 16.0),
+                                        "confirmação do banco parceiro.", 15.0),
+        ("ui_12_sistema_no_em_baixo.png", "Interface Web na demonstração de falha: db-america parado aparece a vermelho.", 15.0),
+        ("ui_06_detalhe_xml_auditoria.png", "Interface Web: XML devolvido pelo banco parceiro (Java) e auditoria lida do NFS.", 8.5),
     ]:
         png = CAPTURAS / nome
         if png.exists():
@@ -695,7 +680,7 @@ async def decidir(tid, decisao):                                  # gravada ANTE
              "com o certificado, protegendo contra intermediários [6]. O cenário 0 prova as três situações: a ligação "
              "sem TLS é recusada, a ligação ao IP (nome que não está no certificado) é recusada, e as ligações dos "
              "serviços aparecem em `pg_stat_ssl` com TLS 1.3.")
-    par(doc, "A captura da execução do cenário 0, com estas ligações, está na secção 6.1.")
+    par(doc, "O resultado está no cenário 0 (secção 6 e `evidencias/00_ambiente_rede_tls.md`).")
 
     H2("5.2 Autenticação distribuída com JWT")
     par(doc, "O serviço `auth` é o nó emissor de tokens: verifica a palavra-passe no nó regional do utilizador e emite "
@@ -743,65 +728,50 @@ async def decidir(tid, decisao):                                  # gravada ANTE
 
     # ---------------------------------------------------------------- 6
     H1("6. Evidências de funcionamento")
-    par(doc, "Os cenários são executados por `python testes/cenarios.py` com o sistema a correr em Docker. Cada cenário "
-             "provoca falhas reais (`docker compose stop`, `kill`, `start`, e `pause`/`unpause` para simular uma falha de "
-             "rede em que o nó fica vivo mas deixa de responder), lê os saldos directamente nos nós PostgreSQL, de forma "
-             "independente da API, e grava um ficheiro `.md` e um `.json` em `evidencias/`. Para escolher o momento exacto "
-             "da falha, o coordenador tem pontos de pausa de laboratório (`POST /laboratorio/pausa`, activos só com "
-             "`LABORATORIO=1` e protegidos por uma chave); a falha em si é sempre real.")
-    par(doc, "**Como foram obtidas as imagens.** Cada cenário foi executado numa janela própria do PowerShell no computador "
-             "de desenvolvimento (Windows 10 Pro, Docker Desktop 4.99) e a imagem é a captura de ecrã dessa janela no fim "
-             "da execução (`docs/relatorio/capturar_ecra.py`). A janela mostra os passos com a hora, um resumo dos estados "
-             "internos (registo do coordenador, `pg_prepared_xacts`, respostas), as verificações e, no fim, a verificação "
-             "global de consistência de todo o sistema. O conteúdo completo de cada bloco está no ficheiro de evidência "
-             "indicado. Antes desta execução, os mesmos 13 cenários passaram numa execução feita a partir de um clone limpo "
-             "do repositório, com certificados e palavras-passe novos (`evidencias/REPRODUCAO_LIMPA.md`).")
-    resumo = []
+    par(doc, "Os cenários são executados por `python testes/cenarios.py` com o sistema em Docker. Cada um provoca falhas "
+             "reais (`docker compose stop`, `kill`, `start`, e `pause` para simular uma falha de rede em que o nó fica vivo "
+             "mas não responde), lê os saldos directamente nos nós PostgreSQL e grava um `.md` e um `.json` em "
+             "`evidencias/`. Os pontos de pausa do coordenador (`POST /laboratorio/pausa`, só com `LABORATORIO=1`) servem "
+             "apenas para escolher o momento exacto da falha. Os 13 cenários passaram a partir de um clone limpo do "
+             "repositório, com certificados e palavras-passe novos (`evidencias/REPRODUCAO_LIMPA.md`), e de novo na "
+             "execução das capturas de ecrã.")
+    prova = {
+        0: "Redes, IP, DNS; TLS 1.3 nas ligações ao PostgreSQL; ligação sem TLS ou com outro nome recusada",
+        1: "Débito no Europa e crédito no América; PREPARE e COMMIT PREPARED nos dois nós; referência do Java",
+        2: "Voto NÃO por saldo insuficiente; validações de conta, montante, casas decimais e moeda",
+        3: "10 pedidos simultâneos: passam só os que o saldo permite; nunca negativo",
+        4: "A mesma chave devolve a mesma transferência; outra quantia com a mesma chave dá 409",
+        5: "Nó em baixo antes e durante a preparação: ABORT e ROLLBACK PREPARED; saldos intactos",
+        6: "Nó cai ou deixa de responder depois do COMMIT: transacção preparada sobrevive e conclui",
+        7: "Coordenador cai: repete o COMMIT gravado ou faz abort presumido; linhas bloqueadas entretanto",
+        8: "api-1 parada: o cliente usa a api-2 com o mesmo token",
+        9: "Tokens forjados, expirados ou de outro destinatário: 401; conta de outro titular: 403",
+        10: "Montante adulterado recusado (401) antes de tocar em saldos; ordem antiga recusada",
+        11: "XML Python ↔ Java; XML inválido e XXE recusados; Java em baixo e confirmação reenviada",
+        12: "api-1 escreve no NFS, api-2 lê; com o NFS em baixo os eventos esperam e são publicados",
+    }
+    linhas = []
     for n in range(0, 13):
         d = ev.get(n)
-        resumo.append([str(n), CENARIOS[n][0],
-                       ("PASSOU" if d["passou"] else "FALHOU") if d else "-",
-                       f"{sum(1 for _, o in d['verificacoes'] if o)}/{len(d['verificacoes'])}" if d else "-"])
+        ok = f"{sum(1 for _, o in d['verificacoes'] if o)}/{len(d['verificacoes'])}" if d else "-"
+        linhas.append([str(n), CENARIOS[n][0], prova[n], ("PASSOU " if d and d["passou"] else "FALHOU ") + ok if d else "-"])
     d99 = ev.get(99)
+    tabela(doc, ["#", "Cenário", "O que prova", "Resultado"], linhas, [0.8, 4.6, 8.6, 2.6])
     if d99:
-        resumo.append(["99", "Verificação global de consistência", "PASSOU" if d99["passou"] else "FALHOU",
-                       f"{sum(1 for _, o in d99['verificacoes'] if o)}/{len(d99['verificacoes'])}"])
-    tabela(doc, ["#", "Cenário", "Resultado", "Verificações"], resumo, [1.0, 10.6, 2.4, 2.6])
-    captura_real(doc, "testes_unitarios.png", "Testes unitários (pytest): dinheiro, assinaturas, JWT, scrypt e contrato XML.")
-    captura_real(doc, "cliente_transferencia.png", "Cliente de linha de comandos: saldo e transferência Europa → América.")
-
-    for n in range(0, 13):
-        d = ev.get(n)
-        titulo, objectivo, dois = CENARIOS[n]
-        h = H2(f"6.{n + 1} Cenário {n}: {titulo}")
-        h.paragraph_format.page_break_before = True           # cada cenario na sua pagina
-        if d is None:
-            par(doc, f"**Por executar:** `python testes/cenarios.py {n}`.")
-            continue
-        ok = sum(1 for _, o in d["verificacoes"] if o)
-        par(doc, f"**Objectivo.** {objectivo}")
-        par(doc, f"**Resultado:** {'PASSOU' if d['passou'] else 'FALHOU'} ({ok}/{len(d['verificacoes'])} verificações). "
-                 f"Evidência completa em `evidencias/{d['ficheiro']}.md`." + (f" **Dois computadores:** {dois}" if dois else ""))
-        sal = d["dados"].get("saldos")
-        if sal:
-            rot = list(sal)
-            tabela(doc, ["Conta"] + [f"Saldo {r} (EUR)" for r in rot],
-                   [[c] + [f"{sal[r][c] / 100:,.2f}".replace(",", " ") for r in rot] for c in sal[rot[0]]],
-                   [3.0] + [13.6 / len(rot)] * len(rot))
-        captura_real(doc, f"cenario_{n:02d}.png", f"Execução do cenário {n}: {titulo[0].lower() + titulo[1:]}.",
-                     largura=15.6)
-
-    if d99:
-        h = H2("6.14 Verificação global de consistência")
-        h.paragraph_format.page_break_before = True
-        par(doc, "Depois de cada cenário, o executor confere todo o sistema directamente nas bases de dados: a soma de todos "
-                 "os saldos, a ausência de saldos negativos, que cada transferência CONCLUIDA tem exactamente um DEBITO e um "
-                 "CREDITO, que as ABORTADA não têm movimentos, que não há movimentos sem transferência e que não ficou "
-                 "nenhuma transacção preparada por resolver. As últimas linhas de cada captura mostram esse resultado; "
-                 "o estado final, depois do último cenário, é este:")
         saldos_finais = json.loads(d99["blocos"].get("Saldos finais", "{}") or "{}")
-        tabela(doc, ["Conta", "Saldo final (EUR)"], [[c, v] for c, v in saldos_finais.items()], [5.0, 5.0])
-        topicos(doc, [("PASSOU: " if o else "FALHOU: ") + v for v, o in d99["verificacoes"]])
+        par(doc, "**Verificação global** (depois de cada cenário, directamente nas bases de dados): " +
+                 ("PASSOU" if d99["passou"] else "FALHOU") + ". A soma de todos os saldos mantém-se em 10 600,00 EUR, "
+                 "nenhum saldo é negativo, cada transferência CONCLUIDA tem exactamente um débito e um crédito, as "
+                 "ABORTADA não têm movimentos e não fica nenhuma transacção preparada por resolver. Saldos finais: " +
+                 ", ".join(f"{c} {v}" for c, v in saldos_finais.items()) + ".")
+    par(doc, "As capturas seguintes são de janelas reais do PowerShell no computador de desenvolvimento; as dos outros "
+             "cenários estão em `docs/relatorio/capturas/` e o detalhe completo em `evidencias/`.")
+    for nome, legenda in [
+        ("cenario_06_1.png", "Cenário 6: falha do nó América e falha de rede durante a confirmação, e recuperação."),
+        ("cenario_07_1.png", "Cenário 7: queda do coordenador com transacções pendentes (COMMIT repetido e abort presumido)."),
+    ]:
+        if (CAPTURAS / nome).exists():
+            fig_numerada(doc, CAPTURAS / nome, legenda + " Captura de ecrã real.", 13.5)
 
     # ---------------------------------------------------------------- 7
     H1("7. Requisitos, implementação e validação")
@@ -849,7 +819,7 @@ async def decidir(tid, decisao):                                  # gravada ANTE
         "máquinas físicas não foi feita e segue o procedimento de `docs/DOIS_COMPUTADORES.md`.",
     ])
 
-    H1("9. Conclusão")
+    doc.add_heading("9. Conclusão", level=1)            # na mesma pagina das limitacoes
     par(doc, "O protótipo cumpre as quatro partes do enunciado. A transferência entre contas em nós diferentes é atómica "
              "porque usa o 2PC sobre transacções preparadas reais, com a decisão gravada antes de ser comunicada e "
              "repetida até todos os nós a aplicarem; os testes derrubaram cada participante e o coordenador em cada fase "
