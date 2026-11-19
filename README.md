@@ -3,6 +3,9 @@
 Plataforma financeira distribuida (prototipo) para a Global Scale Corporation.
 Exame pratico de Sistemas Distribuidos e Paralelos, ISUTC, LECC. Kenneth Dembele.
 
+Repositorio: <https://github.com/kennethdembele-dv/SDP-EXAME-FINAL-KENNETH-DEMBELE>  
+Relatorio tecnico: [PDF](docs/Relatorio_Tecnico_Global-Scale.pdf) e [Word](docs/Relatorio_Tecnico_Global-Scale.docx)
+
 O sistema faz transferencias de dinheiro entre contas guardadas em nos de base de dados diferentes
 (Europa e America) com **Two-Phase Commit** sobre transaccoes preparadas reais do PostgreSQL. Tem
 duas instancias da API REST, autenticacao JWT descentralizada, assinaturas digitais nas ordens,

@@ -31,6 +31,7 @@ EVID = pathlib.Path(os.environ.get("GS_EVIDENCIAS", RAIZ / "evidencias"))
 CONSTRUIR = RAIZ / "docs" / "relatorio" / ".construir"
 EDGE = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
 DATA = "19 de Novembro de 2026"
+REPOSITORIO = "https://github.com/kennethdembele-dv/SDP-EXAME-FINAL-KENNETH-DEMBELE"
 
 
 # ------------------------------------------------------------------ imagens (SVG e capturas -> PNG)
@@ -158,7 +159,8 @@ def capa(doc, logo):
     for t in ("Cadeira: Sistemas Distribuídos e Paralelos", "Curso: Licenciatura em Engenharia e Ciência dos Computadores",
               "Turma: LECC31", "Ano lectivo: 2026", "Discente: Kenneth Dembele"):
         linha(t, 11, depois=8)
-    linha(depois=110)
+    linha("Repositório: " + REPOSITORIO, 10, depois=8)
+    linha(depois=88)
     linha("Docente: Msc. Sérgio J. Sambo", 11, alinhar=WD_ALIGN_PARAGRAPH.RIGHT, depois=150)
     p = linha(f"Maputo, aos {DATA}", 11, True, WD_ALIGN_PARAGRAPH.CENTER, depois=0)
     p.add_run().add_break(WD_BREAK.PAGE)
@@ -277,6 +279,9 @@ def conteudo(doc, fig, ev):
              "processamento, transacções e base de dados (secção 3); interoperabilidade e serviços Web, incluindo a "
              "análise OMA/OMG (secção 4); e técnicas de segurança (secção 5). A secção 6 apresenta as evidências, a "
              "secção 7 associa cada requisito à implementação e à prova, e a secção 8 enumera as limitações.")
+    par(doc, f"O código-fonte, o Docker Compose, as configurações, as migrações, os scripts, os testes, as evidências e "
+             f"este relatório estão no repositório Git {REPOSITORIO}. O `README.md` explica a instalação, o arranque, a "
+             f"demonstração e a recuperação.")
     tabela(doc, ["Conteúdo da disciplina [E]", "Onde é aplicado"], [
         ["1. Redes, SO e linguagens", "Redes Docker com IP fixos e DNS; contentores Linux; Python e Java"],
         ["2. Distribuído vs centralizado", "Secção 2.1; nós regionais, duas APIs, coordenador"],
@@ -773,6 +778,7 @@ async def decidir(tid, decisao):                                  # gravada ANTE
         ["Nó emissor de tokens e validação independente", "autenticacao/main.py, comum/tokens.py", "Cenário 9"],
         ["Assinaturas/hashes nas mensagens", "comum/assinatura.py", "Cenário 10"],
         ["Segredos fora do repositório", ".gitignore, .env.example, seguranca/gerar_materiais.py", "git status"],
+        ["Repositório Git com código, Compose e README", REPOSITORIO, "Histórico de commits"],
         ["Demonstração: derrubar nós", "docs/ROTEIRO_DEFESA.md, testes/lab.py", "Cenários 5 a 8, 11, 12"],
     ], [5.8, 7.2, 3.6])
 
